@@ -1,0 +1,137 @@
+{% extends "base.html" %}
+
+{% block title %}Cohort Analytics — ExamGuard{% endblock %}
+{% block page_title %}Cohort Risk Profiling & Statistical Intelligence{% endblock %}
+
+{% block content %}
+<!-- Cohort Risk Profiling Summary Cards -->
+<div class="card" style="margin-bottom: 1.75rem; border-left: 4px solid var(--primary);">
+  <div class="card-header-flex">
+    <h3 class="card-title"><i class="bi bi-graph-up-arrow text-primary"></i> Cohort Integrity Risk Profile</h3>
+    <form method="GET" action="{{ url_for('admin.analytics') }}" style="display: flex; gap: 0.5rem; align-items: center;">
+      <select name="exam_id" class="form-control" style="width: auto; padding: 0.35rem 0.75rem; font-size: 0.82rem;" onchange="this.form.submit()">
+        <option value="">All Examinations Cohort</option>
+        {% for exam in exams %}
+        <option value="{{ exam.id }}" {% if selected_exam_id == exam.id %}selected{% endif %}>{{ exam.title }}</option>
+        {% endfor %}
+      </select>
+    </form>
+  </div>
+
+  <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 1rem;">
+    <div style="background-color: var(--bg-card); padding: 1rem; border-radius: 8px;">
+      <span style="font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase;">Low-Risk Candidates</span>
+      <div style="font-size: 1.5rem; font-weight: 700; color: #34d399;">{{ kpis.low_risk_pct }}%</div>
+      <span style="font-size: 0.72rem; color: var(--text-muted);">{{ kpis.low_risk_count }} sessions</span>
+    </div>
+
+    <div style="background-color: var(--bg-card); padding: 1rem; border-radius: 8px;">
+      <span style="font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase;">Medium-Risk Candidates</span>
+      <div style="font-size: 1.5rem; font-weight: 700; color: #fbbf24;">{{ kpis.med_risk_pct }}%</div>
+      <span style="font-size: 0.72rem; color: var(--text-muted);">{{ kpis.medium_risk_count }} sessions</span>
+    </div>
+
+    <div style="background-color: var(--bg-card); padding: 1rem; border-radius: 8px;">
+      <span style="font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase;">High-Risk Candidates</span>
+      <div style="font-size: 1.5rem; font-weight: 700; color: #f87171;">{{ kpis.high_risk_pct }}%</div>
+      <span style="font-size: 0.72rem; color: var(--text-muted);">{{ kpis.high_risk_count }} sessions</span>
+    </div>
+
+    <div style="background-color: var(--bg-card); padding: 1rem; border-radius: 8px;">
+      <span style="font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase;">Cohort Avg Score</span>
+      <div style="font-size: 1.5rem; font-weight: 700; color: #38bdf8;">{{ kpis.average_integrity_score }}</div>
+      <span style="font-size: 0.72rem; color: var(--text-muted);">Out of 100.0</span>
+    </div>
+
+    <div style="background-color: var(--bg-card); padding: 1rem; border-radius: 8px;">
+      <span style="font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase;">Avg Face Presence</span>
+      <div style="font-size: 1.5rem; font-weight: 700; color: #a78bfa;">{{ kpis.average_face_presence_pct }}%</div>
+      <span style="font-size: 0.72rem; color: var(--text-muted);">Webcam ratio</span>
+    </div>
+
+    <div style="background-color: var(--bg-card); padding: 1rem; border-radius: 8px;">
+      <span style="font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase;">Sessions Needing Review</span>
+      <div style="font-size: 1.5rem; font-weight: 700; color: #fb923c;">{{ kpis.unresolved_alerts }}</div>
+      <span style="font-size: 0.72rem; color: var(--text-muted);">Open incidents</span>
+    </div>
+  </div>
+</div>
+
+<!-- 6 Interactive Charts Grid -->
+<div class="grid-2" style="margin-bottom: 1.5rem;">
+  <!-- Chart 1 -->
+  <div class="card" style="margin-bottom: 0;">
+    <div class="card-header-flex">
+      <h3 class="card-title"><i class="bi bi-bar-chart-steps text-primary"></i> Chart 1: Integrity Score Distribution</h3>
+    </div>
+    <div style="height: 270px; position: relative;">
+      <canvas id="chart-score-dist"></canvas>
+    </div>
+  </div>
+
+  <!-- Chart 2 -->
+  <div class="card" style="margin-bottom: 0;">
+    <div class="card-header-flex">
+      <h3 class="card-title"><i class="bi bi-pie-chart-fill text-warning"></i> Chart 2: Risk-Level Distribution</h3>
+    </div>
+    <div style="height: 270px; position: relative;">
+      <canvas id="chart-risk-dist"></canvas>
+    </div>
+  </div>
+</div>
+
+<div class="grid-2" style="margin-bottom: 1.5rem;">
+  <!-- Chart 3 -->
+  <div class="card" style="margin-bottom: 0;">
+    <div class="card-header-flex">
+      <h3 class="card-title"><i class="bi bi-activity text-info"></i> Chart 3: Telemetry Event Frequency</h3>
+    </div>
+    <div style="height: 270px; position: relative;">
+      <canvas id="chart-event-freq"></canvas>
+    </div>
+  </div>
+
+  <!-- Chart 4 -->
+  <div class="card" style="margin-bottom: 0;">
+    <div class="card-header-flex">
+      <h3 class="card-title"><i class="bi bi-person-bounding-box text-success"></i> Chart 4: Face Presence Ratio Distribution</h3>
+    </div>
+    <div style="height: 270px; position: relative;">
+      <canvas id="chart-face-presence"></canvas>
+    </div>
+  </div>
+</div>
+
+<div class="grid-2" style="margin-bottom: 2rem;">
+  <!-- Chart 5 -->
+  <div class="card" style="margin-bottom: 0;">
+    <div class="card-header-flex">
+      <h3 class="card-title"><i class="bi bi-grid-3x3-gap-fill text-amber"></i> Chart 5: Suspicious Rule Frequency</h3>
+    </div>
+    <div style="height: 270px; position: relative;">
+      <canvas id="chart-suspicious-heatmap"></canvas>
+    </div>
+  </div>
+
+  <!-- Chart 6 -->
+  <div class="card" style="margin-bottom: 0;">
+    <div class="card-header-flex">
+      <h3 class="card-title"><i class="bi bi-scatter text-danger"></i> Chart 6: Score vs. Suspicious Events Scatter</h3>
+    </div>
+    <div style="height: 270px; position: relative;">
+      <canvas id="chart-scatter"></canvas>
+    </div>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script src="{{ url_for('static', filename='js/charts.js') }}"></script>
+<script>
+  document.addEventListener("DOMContentLoaded", () => {
+    const rawChartData = {{ chart_data|tojson }};
+    initDashboardCharts(rawChartData);
+  });
+</script>
+{% endblock %}

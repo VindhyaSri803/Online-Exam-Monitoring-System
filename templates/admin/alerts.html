@@ -1,0 +1,124 @@
+{% extends "base.html" %}
+
+{% block title %}Incidents & Alerts — ExamGuard{% endblock %}
+{% block page_title %}Incident Triage & Alert Management{% endblock %}
+
+{% block content %}
+<!-- Filter Bar -->
+<div class="card" style="padding: 1.25rem; margin-bottom: 1.5rem;">
+  <form method="GET" action="{{ url_for('admin.alerts') }}" style="display: flex; flex-wrap: wrap; gap: 1rem; align-items: flex-end;">
+    <div style="min-width: 180px;">
+      <label class="form-label" for="severity">Severity Filter</label>
+      <select id="severity" name="severity" class="form-control">
+        <option value="">All Severities</option>
+        <option value="HIGH" {% if selected_severity == 'HIGH' %}selected{% endif %}>High Severity</option>
+        <option value="MEDIUM" {% if selected_severity == 'MEDIUM' %}selected{% endif %}>Medium Severity</option>
+        <option value="LOW" {% if selected_severity == 'LOW' %}selected{% endif %}>Low Severity</option>
+      </select>
+    </div>
+
+    <div style="min-width: 180px;">
+      <label class="form-label" for="status">Review Status</label>
+      <select id="status" name="status" class="form-control">
+        <option value="">All Statuses</option>
+        <option value="New" {% if selected_status == 'New' %}selected{% endif %}>New (Unresolved)</option>
+        <option value="Under Review" {% if selected_status == 'Under Review' %}selected{% endif %}>Under Review</option>
+        <option value="Reviewed" {% if selected_status == 'Reviewed' %}selected{% endif %}>Reviewed</option>
+        <option value="Resolved" {% if selected_status == 'Resolved' %}selected{% endif %}>Resolved</option>
+      </select>
+    </div>
+
+    <div>
+      <button type="submit" class="btn btn-primary" style="height: 42px;">
+        <i class="bi bi-funnel"></i> Apply Filter
+      </button>
+      <a href="{{ url_for('admin.alerts') }}" class="btn btn-secondary" style="height: 42px;">Reset</a>
+    </div>
+  </form>
+</div>
+
+<!-- Alerts Table -->
+<div class="card">
+  <div class="card-header-flex">
+    <h3 class="card-title">
+      <i class="bi bi-bell-fill text-danger"></i> Flagged Incidents ({{ alerts|length }})
+    </h3>
+  </div>
+
+  <div class="table-responsive">
+    <table class="custom-table">
+      <thead>
+        <tr>
+          <th>Severity</th>
+          <th>Candidate</th>
+          <th>Examination</th>
+          <th>Incident Details</th>
+          <th>Logged At</th>
+          <th>Status</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for alert in alerts %}
+        <tr>
+          <td>
+            <span class="badge badge-{{ alert.severity|lower }}">{{ alert.severity }}</span>
+          </td>
+          <td>
+            <div style="font-weight: 600;">{{ alert.candidate.name if alert.candidate else 'Unknown' }}</div>
+            <div style="font-size: 0.75rem; color: var(--text-muted);">{{ alert.candidate.email if alert.candidate else '' }}</div>
+          </td>
+          <td>
+            <span style="font-size: 0.82rem;">{{ alert.exam.title if alert.exam else 'N/A' }}</span>
+          </td>
+          <td>
+            <div style="font-weight: 600; font-size: 0.85rem; color: #f3f4f6;">{{ alert.title }}</div>
+            <div style="font-size: 0.78rem; color: var(--text-secondary);">{{ alert.description }}</div>
+          </td>
+          <td>
+            <span style="font-size: 0.78rem; color: var(--text-muted);">
+              {{ alert.timestamp.strftime('%b %d, %H:%M') if alert.timestamp else 'N/A' }}
+            </span>
+          </td>
+          <td>
+            <select class="form-control" style="font-size: 0.75rem; padding: 0.25rem 0.5rem; width: auto;" onchange="updateAlertStatus({{ alert.id }}, this.value)">
+              <option value="New" {% if alert.status == 'New' %}selected{% endif %}>New</option>
+              <option value="Under Review" {% if alert.status == 'Under Review' %}selected{% endif %}>Under Review</option>
+              <option value="Reviewed" {% if alert.status == 'Reviewed' %}selected{% endif %}>Reviewed</option>
+              <option value="Resolved" {% if alert.status == 'Resolved' %}selected{% endif %}>Resolved</option>
+            </select>
+          </td>
+          <td>
+            <a href="{{ url_for('admin.session_detail', session_id=alert.session_id) }}" class="btn btn-primary btn-sm">
+              <i class="bi bi-search"></i> Inspect Session #{{ alert.session_id }}
+            </a>
+          </td>
+        </tr>
+        {% else %}
+        <tr>
+          <td colspan="7" style="text-align: center; color: var(--text-muted); padding: 2rem;">
+            No incidents found for the selected criteria.
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  async function updateAlertStatus(alertId, newStatus) {
+    try {
+      await fetch('/api/admin/update-incident-status', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ alert_id: alertId, status: newStatus })
+      });
+    } catch (err) {
+      console.error('Error updating alert status:', err);
+    }
+  }
+</script>
+{% endblock %}

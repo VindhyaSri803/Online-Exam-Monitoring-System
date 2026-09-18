@@ -1,0 +1,93 @@
+{% extends "base.html" %}
+
+{% block title %}Candidate Management — ExamGuard{% endblock %}
+{% block page_title %}Candidate Directory & Integrity Profiles{% endblock %}
+
+{% block content %}
+<div class="card" style="padding: 1.25rem; margin-bottom: 1.5rem;">
+  <form method="GET" action="{{ url_for('admin.candidates') }}" style="display: flex; gap: 1rem; align-items: center;">
+    <div style="flex: 1; max-width: 420px;">
+      <input type="text" name="search" class="form-control" placeholder="Search candidate by name or email..." value="{{ search }}">
+    </div>
+    <button type="submit" class="btn btn-primary">
+      <i class="bi bi-search"></i> Search
+    </button>
+    {% if search %}
+    <a href="{{ url_for('admin.candidates') }}" class="btn btn-secondary">Clear</a>
+    {% endif %}
+  </form>
+</div>
+
+<div class="card">
+  <div class="card-header-flex">
+    <h3 class="card-title">
+      <i class="bi bi-people-fill text-primary"></i> Registered Candidates ({{ candidate_data|length }})
+    </h3>
+  </div>
+
+  <div class="table-responsive">
+    <table class="custom-table">
+      <thead>
+        <tr>
+          <th>Candidate</th>
+          <th>Total Assessments</th>
+          <th>Average Integrity Score</th>
+          <th>High Risk Sessions</th>
+          <th>Registered Date</th>
+          <th>Action</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for item in candidate_data %}
+        <tr>
+          <td>
+            <div style="display: flex; align-items: center; gap: 0.75rem;">
+              {% if item.candidate.registration_photo %}
+                <img src="{{ url_for('uploaded_photo', filename=item.candidate.registration_photo) }}" alt="{{ item.candidate.name }}" class="user-avatar-sm">
+              {% else %}
+                <div class="user-avatar-sm" style="display: flex; align-items: center; justify-content: center; font-weight: 700; color: var(--primary);">
+                  {{ item.candidate.name[0] }}
+                </div>
+              {% endif %}
+              <div>
+                <div style="font-weight: 600;">{{ item.candidate.name }}</div>
+                <div style="font-size: 0.75rem; color: var(--text-muted);">{{ item.candidate.email }}</div>
+              </div>
+            </div>
+          </td>
+          <td><strong>{{ item.session_count }}</strong> exams</td>
+          <td>
+            <strong style="color: {% if item.avg_score >= 80 %}#34d399{% elif item.avg_score >= 50 %}#fbbf24{% else %}#f87171{% endif %};">
+              {{ item.avg_score }}
+            </strong>/100
+          </td>
+          <td>
+            {% if item.high_risk_count > 0 %}
+              <span class="badge badge-danger">{{ item.high_risk_count }} High Risk</span>
+            {% else %}
+              <span class="badge badge-success">0 Flags</span>
+            {% endif %}
+          </td>
+          <td>
+            <span style="font-size: 0.8rem; color: var(--text-secondary);">
+              {{ item.candidate.created_at.strftime('%b %d, %Y') if item.candidate.created_at else 'N/A' }}
+            </span>
+          </td>
+          <td>
+            <a href="{{ url_for('admin.candidate_detail', candidate_id=item.candidate.id) }}" class="btn btn-secondary btn-sm">
+              <i class="bi bi-person-lines-fill"></i> 360° Profile
+            </a>
+          </td>
+        </tr>
+        {% else %}
+        <tr>
+          <td colspan="6" style="text-align: center; color: var(--text-muted); padding: 2rem;">
+            No candidates found matching the query.
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

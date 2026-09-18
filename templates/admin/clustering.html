@@ -1,0 +1,124 @@
+{% extends "base.html" %}
+
+{% block title %}K-Means Session Clustering — ExamGuard{% endblock %}
+{% block page_title %}Unsupervised Behavioral Clustering (Scikit-Learn K-Means){% endblock %}
+
+{% block content %}
+<!-- Ethical Clarification Note -->
+<div class="card" style="border-left: 4px solid var(--info); background-color: rgba(6, 182, 212, 0.08); margin-bottom: 1.5rem;">
+  <div style="display: flex; align-items: flex-start; gap: 0.75rem;">
+    <i class="bi bi-info-circle-fill" style="color: var(--info); font-size: 1.25rem; margin-top: 0.15rem;"></i>
+    <div>
+      <strong style="color: var(--info);">Analytical Decision-Support Notice:</strong>
+      <p style="font-size: 0.85rem; color: var(--text-secondary); margin-top: 0.25rem;">
+        ExamGuard clusters examination sessions using standardized multi-dimensional telemetry features (integrity score, face presence ratio, tab transitions, focus loss counts, absence duration, and suspicious infractions). 
+        Clustering groups behavioral patterns for invigilator triage and does NOT constitute definitive proof of academic misconduct.
+      </p>
+    </div>
+  </div>
+</div>
+
+<!-- Cluster Behavioral Profile Summary Cards -->
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1.5rem; margin-bottom: 1.75rem;">
+  {% for cl in clustering.clusters %}
+  <div class="card" style="margin-bottom: 0; border-top: 4px solid {{ cl.color }};">
+    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.75rem;">
+      <h3 style="font-size: 1.15rem; font-weight: 700; color: {{ cl.color }};">{{ cl.label }}</h3>
+      <span class="badge badge-secondary">{{ cl.session_count }} Sessions</span>
+    </div>
+
+    <p style="font-size: 0.82rem; color: var(--text-secondary); line-height: 1.5; margin-bottom: 1rem;">
+      {{ cl.description }}
+    </p>
+
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; font-size: 0.78rem; background-color: var(--bg-card); padding: 0.75rem; border-radius: 8px;">
+      <div>Avg Integrity: <strong>{{ cl.avg_integrity }}</strong>/100</div>
+      <div>Avg Face Presence: <strong>{{ cl.avg_face_presence }}%</strong></div>
+      <div>Avg Tab Switches: <strong>{{ cl.avg_tab_switches }}</strong></div>
+      <div>Avg Suspicious Flags: <strong>{{ cl.avg_suspicious_events }}</strong></div>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+
+<!-- Chart 7: 2D PCA Dimensionality Reduction Scatter Visualization -->
+<div class="card" style="margin-bottom: 2rem;">
+  <div class="card-header-flex">
+    <div>
+      <h3 class="card-title"><i class="bi bi-diagram-3-fill text-primary"></i> Chart 7: 2D PCA Behavioral Projection Space</h3>
+      <span style="font-size: 0.75rem; color: var(--text-muted);">
+        Standardized 6-Feature Vector projected via Principal Component Analysis
+        {% if clustering.pca_variance_ratio %}
+        (Explained Variance: PC1={{ (clustering.pca_variance_ratio[0]*100)|round(1) }}%, PC2={{ (clustering.pca_variance_ratio[1]*100)|round(1) }}%)
+        {% endif %}
+      </span>
+    </div>
+  </div>
+
+  <div style="height: 380px; position: relative;">
+    <canvas id="chart-kmeans-pca"></canvas>
+  </div>
+</div>
+
+<!-- Clustered Sessions Sample Table -->
+<div class="card">
+  <div class="card-header-flex">
+    <h3 class="card-title">
+      <i class="bi bi-table text-primary"></i> Clustered Sessions Dataset ({{ clustering.total_sessions }} Total)
+    </h3>
+  </div>
+
+  <div class="table-responsive">
+    <table class="custom-table">
+      <thead>
+        <tr>
+          <th>Session ID</th>
+          <th>Candidate</th>
+          <th>Exam</th>
+          <th>Integrity Score</th>
+          <th>Assigned Cluster</th>
+          <th>Risk Level</th>
+          <th>Action</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for pt in clustering.points[:25] %}
+        <tr>
+          <td><code>#{{ pt.session_id }}</code></td>
+          <td><strong>{{ pt.candidate_name }}</strong></td>
+          <td><span style="font-size: 0.8rem; color: var(--text-secondary);">{{ pt.exam_title[:30] }}...</span></td>
+          <td>
+            <strong style="color: {% if pt.integrity_score >= 80 %}#34d399{% elif pt.integrity_score >= 50 %}#fbbf24{% else %}#f87171{% endif %};">
+              {{ pt.integrity_score }}
+            </strong>
+          </td>
+          <td>
+            <span class="badge" style="background-color: rgba(59,130,246,0.15); color: {{ pt.color }}; border: 1px solid {{ pt.color }};">
+              {{ pt.cluster_label }}
+            </span>
+          </td>
+          <td>
+            <span class="badge badge-{{ pt.risk_level|lower }}">{{ pt.risk_level }}</span>
+          </td>
+          <td>
+            <a href="{{ url_for('admin.session_detail', session_id=pt.session_id) }}" class="btn btn-secondary btn-sm" style="padding: 0.25rem 0.5rem; font-size: 0.72rem;">
+              Inspect
+            </a>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{{ url_for('static', filename='js/charts.js') }}"></script>
+<script>
+  document.addEventListener("DOMContentLoaded", () => {
+    const clusteringData = {{ clustering|tojson }};
+    initClusteringChart(clusteringData);
+  });
+</script>
+{% endblock %}

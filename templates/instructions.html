@@ -1,0 +1,199 @@
+{% extends "base.html" %}
+
+{% block title %}Exam Instructions: {{ exam.title }} — ExamGuard{% endblock %}
+{% block page_title %}Candidate Examination Briefing & Readiness Check{% endblock %}
+
+{% block content %}
+<div style="max-width: 900px; margin: 0 auto; padding-bottom: 3rem;">
+
+  <!-- Exam Header Summary Card -->
+  <div class="card" style="margin-bottom: 1.5rem; border-left: 4px solid var(--primary);">
+    <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 1rem;">
+      <div>
+        <span class="badge badge-primary" style="margin-bottom: 0.5rem;">Proctored Assessment</span>
+        <h2 style="font-size: 1.4rem; font-weight: 700; color: #f9fafb; margin-bottom: 0.25rem;">{{ exam.title }}</h2>
+        <p style="color: var(--text-secondary); font-size: 0.88rem; margin: 0;">
+          {{ exam.description or "Comprehensive online academic assessment monitored by ExamGuard AI Proctoring." }}
+        </p>
+      </div>
+      <div style="display: flex; gap: 1.5rem; background-color: var(--bg-card); padding: 0.85rem 1.25rem; border-radius: 10px; border: 1px solid var(--border-color);">
+        <div style="text-align: center;">
+          <span style="font-size: 0.72rem; color: var(--text-muted); text-transform: uppercase;">Duration</span>
+          <div style="font-size: 1.2rem; font-weight: 700; color: #38bdf8;">{{ exam.duration_minutes }} Mins</div>
+        </div>
+        <div style="text-align: center; border-left: 1px solid var(--border-color); padding-left: 1.5rem;">
+          <span style="font-size: 0.72rem; color: var(--text-muted); text-transform: uppercase;">Questions</span>
+          <div style="font-size: 1.2rem; font-weight: 700; color: #34d399;">{{ exam.questions|length }}</div>
+        </div>
+        <div style="text-align: center; border-left: 1px solid var(--border-color); padding-left: 1.5rem;">
+          <span style="font-size: 0.72rem; color: var(--text-muted); text-transform: uppercase;">Max Marks</span>
+          <div style="font-size: 1.2rem; font-weight: 700; color: #f59e0b;">{{ exam.total_marks }}</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="grid-2" style="margin-bottom: 1.5rem;">
+    <!-- Examination Guidelines -->
+    <div class="card" style="margin-bottom: 0;">
+      <div class="card-header-flex">
+        <h3 class="card-title"><i class="bi bi-shield-check text-primary"></i> Examination Monitoring Rules</h3>
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 1rem; font-size: 0.85rem; color: var(--text-secondary); line-height: 1.5;">
+        <div style="display: flex; gap: 0.75rem; align-items: flex-start;">
+          <div style="width: 28px; height: 28px; border-radius: 50%; background: rgba(59,130,246,0.15); color: var(--primary); display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-weight: 700; font-size: 0.8rem;">1</div>
+          <div>
+            <strong style="color: #f3f4f6;">Continuous Face Presence:</strong> Ensure your camera is turned on. OpenCV Haar Cascade verifies face presence every 1.5 seconds.
+          </div>
+        </div>
+        <div style="display: flex; gap: 0.75rem; align-items: flex-start;">
+          <div style="width: 28px; height: 28px; border-radius: 50%; background: rgba(59,130,246,0.15); color: var(--primary); display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-weight: 700; font-size: 0.8rem;">2</div>
+          <div>
+            <strong style="color: #f3f4f6;">No Browser Tab Switching:</strong> Navigating away from the exam tab is automatically recorded as an anomaly event.
+          </div>
+        </div>
+        <div style="display: flex; gap: 0.75rem; align-items: flex-start;">
+          <div style="width: 28px; height: 28px; border-radius: 50%; background: rgba(59,130,246,0.15); color: var(--primary); display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-weight: 700; font-size: 0.8rem;">3</div>
+          <div>
+            <strong style="color: #f3f4f6;">Maintain Fullscreen & Focus:</strong> Exiting full screen or losing application focus triggers telemetry indicators.
+          </div>
+        </div>
+        <div style="display: flex; gap: 0.75rem; align-items: flex-start;">
+          <div style="width: 28px; height: 28px; border-radius: 50%; background: rgba(59,130,246,0.15); color: var(--primary); display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-weight: 700; font-size: 0.8rem;">4</div>
+          <div>
+            <strong style="color: #f3f4f6;">Solo Environment:</strong> Multiple persons in frame are automatically detected and captured as visual incident evidence.
+          </div>
+        </div>
+        <div style="display: flex; gap: 0.75rem; align-items: flex-start;">
+          <div style="width: 28px; height: 28px; border-radius: 50%; background: rgba(59,130,246,0.15); color: var(--primary); display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-weight: 700; font-size: 0.8rem;">5</div>
+          <div>
+            <strong style="color: #f3f4f6;">Automated Timer:</strong> When the countdown timer reaches 00:00, your test will be safely submitted automatically.
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Hardware & Camera Permission Readiness Check -->
+    <div class="card" style="margin-bottom: 0;">
+      <div class="card-header-flex">
+        <h3 class="card-title"><i class="bi bi-camera-video-fill text-primary"></i> Camera Readiness Verification</h3>
+        <span class="badge badge-info" id="cam-status-badge">Check Required</span>
+      </div>
+
+      <!-- Video Preview Box -->
+      <div style="position: relative; width: 100%; aspect-ratio: 4/3; background: #000; border-radius: 8px; overflow: hidden; margin-bottom: 1rem; border: 1px solid var(--border-color);">
+        <video id="instruction-video" autoplay playsinline muted style="width: 100%; height: 100%; object-fit: cover; transform: scaleX(-1);"></video>
+        <div id="cam-placeholder" style="position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; background: rgba(17,24,39,0.9); color: var(--text-muted);">
+          <i class="bi bi-camera-fill" style="font-size: 2.5rem; margin-bottom: 0.5rem; color: var(--primary);"></i>
+          <span style="font-size: 0.85rem;">Click "Allow Camera Access" to verify video feed</span>
+        </div>
+      </div>
+
+      <div style="display: flex; gap: 0.75rem; margin-bottom: 1rem;">
+        <button type="button" id="btn-request-cam" class="btn btn-secondary btn-sm" style="flex: 1; border-color: var(--primary);">
+          <i class="bi bi-webcam-fill"></i> Allow Camera Access
+        </button>
+      </div>
+
+      <!-- Readiness Checklist -->
+      <div style="background-color: var(--bg-card); padding: 0.85rem 1rem; border-radius: 8px; border: 1px solid var(--border-color); font-size: 0.8rem;">
+        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.4rem;">
+          <span><i class="bi bi-check-circle-fill text-success"></i> WebRTC Camera Protocol</span>
+          <span class="badge badge-success">Supported</span>
+        </div>
+        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.4rem;">
+          <span><i class="bi bi-check-circle-fill text-success"></i> Browser Telemetry API</span>
+          <span class="badge badge-success">Ready</span>
+        </div>
+        <div style="display: flex; align-items: center; justify-content: space-between;">
+          <span><i class="bi bi-camera-fill" id="cam-icon"></i> Video Stream Feed</span>
+          <span class="badge badge-secondary" id="cam-stream-status">Not Started</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Action Controls -->
+  <div class="card" style="padding: 1.5rem; text-align: center;">
+    <h4 style="font-size: 1.1rem; font-weight: 700; margin-bottom: 0.5rem; color: #f9fafb;">Ready to Begin Your Examination?</h4>
+    <p style="color: var(--text-secondary); font-size: 0.85rem; max-width: 600px; margin: 0 auto 1.5rem auto;">
+      By clicking "Start Examination", your session will be created and the proctoring timer will begin immediately.
+    </p>
+
+    <div style="display: flex; justify-content: center; gap: 1rem; flex-wrap: wrap;">
+      <a href="{{ url_for('candidate.start_exam', exam_id=exam.id, mode='live') }}" class="btn btn-primary btn-lg" style="padding: 0.85rem 2rem;">
+        <i class="bi bi-play-circle-fill"></i> Start Examination (Live Camera Proctored)
+      </a>
+      <a href="{{ url_for('candidate.start_exam', exam_id=exam.id, mode='simulated') }}" class="btn btn-secondary btn-lg" style="padding: 0.85rem 1.5rem;">
+        <i class="bi bi-cpu-fill"></i> Start in Simulated Demo Mode
+      </a>
+    </div>
+
+    <div style="margin-top: 1.25rem;">
+      <a href="{{ url_for('candidate.dashboard') }}" style="font-size: 0.85rem; color: var(--text-muted); text-decoration: none;">
+        <i class="bi bi-arrow-left"></i> Return to Candidate Assessments
+      </a>
+    </div>
+  </div>
+
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+  const reqCamBtn = document.getElementById("btn-request-cam");
+  const videoElem = document.getElementById("instruction-video");
+  const placeholder = document.getElementById("cam-placeholder");
+  const badge = document.getElementById("cam-status-badge");
+  const streamStatus = document.getElementById("cam-stream-status");
+  const camIcon = document.getElementById("cam-icon");
+
+  if (reqCamBtn) {
+    reqCamBtn.addEventListener("click", async () => {
+      reqCamBtn.disabled = true;
+      reqCamBtn.innerText = "Requesting Permission...";
+
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({
+          video: { width: { ideal: 480 }, height: { ideal: 360 }, facingMode: "user" },
+          audio: false
+        });
+        if (videoElem) {
+          videoElem.srcObject = stream;
+          videoElem.play();
+        }
+        if (placeholder) placeholder.style.display = "none";
+        if (badge) {
+          badge.className = "badge badge-success";
+          badge.innerText = "Camera Verified";
+        }
+        if (streamStatus) {
+          streamStatus.className = "badge badge-success";
+          streamStatus.innerText = "Active Stream";
+        }
+        if (camIcon) {
+          camIcon.className = "bi bi-check-circle-fill text-success";
+        }
+        reqCamBtn.className = "btn btn-success btn-sm";
+        reqCamBtn.innerHTML = '<i class="bi bi-check2-circle"></i> Camera Connected';
+      } catch (err) {
+        console.warn("Camera access denied or unavailable:", err);
+        if (badge) {
+          badge.className = "badge badge-warning";
+          badge.innerText = "Permission Denied / Unavailable";
+        }
+        if (streamStatus) {
+          streamStatus.className = "badge badge-warning";
+          streamStatus.innerText = "Use Demo Mode";
+        }
+        reqCamBtn.disabled = false;
+        reqCamBtn.className = "btn btn-warning btn-sm";
+        reqCamBtn.innerHTML = '<i class="bi bi-exclamation-triangle"></i> Retry Camera Access';
+        alert("Webcam permission denied or camera not found. You may still proceed using 'Start in Simulated Demo Mode'.");
+      }
+    });
+  }
+});
+</script>
+{% endblock %}

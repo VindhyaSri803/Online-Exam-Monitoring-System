@@ -1,0 +1,128 @@
+{% extends "base.html" %}
+
+{% block title %}Platform Settings — ExamGuard{% endblock %}
+{% block page_title %}Monitoring Engine Rules & Scoring Configuration{% endblock %}
+
+{% block content %}
+<form method="POST" action="{{ url_for('admin.settings') }}">
+  <div class="grid-2">
+
+    <!-- Monitoring Rules & Thresholds -->
+    <div class="card">
+      <div class="card-header-flex">
+        <h3 class="card-title">
+          <i class="bi bi-shield-check text-primary"></i> Telemetry & Anomaly Thresholds
+        </h3>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="face_absence_threshold_sec">
+          Prolonged Face Absence Threshold (seconds)
+        </label>
+        <input type="number" step="0.5" id="face_absence_threshold_sec" name="face_absence_threshold_sec" class="form-control" value="{{ settings.face_absence_threshold_sec }}" required>
+        <small style="color: var(--text-muted); font-size: 0.75rem;">Flag suspicious event if candidate face is absent continuously for this duration.</small>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="tab_switch_threshold">
+          Tab Switching Anomaly Trigger (count)
+        </label>
+        <input type="number" id="tab_switch_threshold" name="tab_switch_threshold" class="form-control" value="{{ settings.tab_switch_threshold }}" required>
+        <small style="color: var(--text-muted); font-size: 0.75rem;">Medium severity alert triggered when tab switches reach this count.</small>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="high_risk_tab_switch_threshold">
+          High-Risk Tab Switch Trigger (count)
+        </label>
+        <input type="number" id="high_risk_tab_switch_threshold" name="high_risk_tab_switch_threshold" class="form-control" value="{{ settings.high_risk_tab_switch_threshold }}" required>
+        <small style="color: var(--text-muted); font-size: 0.75rem;">High severity alert & large penalty deduction threshold.</small>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="window_blur_threshold">
+          Window Focus Loss Trigger (count)
+        </label>
+        <input type="number" id="window_blur_threshold" name="window_blur_threshold" class="form-control" value="{{ settings.window_blur_threshold }}" required>
+        <small style="color: var(--text-muted); font-size: 0.75rem;">Max blur events allowed before flagging.</small>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="monitoring_interval_ms">
+          CV Frame Capture Rate (milliseconds)
+        </label>
+        <input type="number" step="100" id="monitoring_interval_ms" name="monitoring_interval_ms" class="form-control" value="{{ settings.monitoring_interval_ms }}" required>
+        <small style="color: var(--text-muted); font-size: 0.75rem;">Frequency of webcam frame telemetry pings from candidate browser.</small>
+      </div>
+    </div>
+
+    <!-- Scoring Weights & Risk Thresholds -->
+    <div class="card">
+      <div class="card-header-flex">
+        <h3 class="card-title">
+          <i class="bi bi-calculator-fill text-warning"></i> Scoring Penalty Weights & Risk Bounds
+        </h3>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="weight_face_absence">
+          Face Absence Penalty Weight (0.0 – 1.0)
+        </label>
+        <input type="number" step="0.05" min="0" max="1" id="weight_face_absence" name="weight_face_absence" class="form-control" value="{{ settings.weight_face_absence }}" required>
+        <small style="color: var(--text-muted); font-size: 0.75rem;">Weight assigned to face absence ratio (Default: 0.30 = 30%).</small>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="weight_tab_switch">
+          Tab Switching Penalty Weight (0.0 – 1.0)
+        </label>
+        <input type="number" step="0.05" min="0" max="1" id="weight_tab_switch" name="weight_tab_switch" class="form-control" value="{{ settings.weight_tab_switch }}" required>
+        <small style="color: var(--text-muted); font-size: 0.75rem;">Weight assigned to tab transitions (Default: 0.25 = 25%).</small>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="weight_window_blur">
+          Focus Loss Penalty Weight (0.0 – 1.0)
+        </label>
+        <input type="number" step="0.05" min="0" max="1" id="weight_window_blur" name="weight_window_blur" class="form-control" value="{{ settings.weight_window_blur }}" required>
+        <small style="color: var(--text-muted); font-size: 0.75rem;">Weight assigned to window blur events (Default: 0.20 = 20%).</small>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="weight_other_suspicious">
+          Suspicious Violations Weight (0.0 – 1.0)
+        </label>
+        <input type="number" step="0.05" min="0" max="1" id="weight_other_suspicious" name="weight_other_suspicious" class="form-control" value="{{ settings.weight_other_suspicious }}" required>
+        <small style="color: var(--text-muted); font-size: 0.75rem;">Weight assigned to rule anomalies (Default: 0.25 = 25%).</small>
+      </div>
+
+      <div class="grid-2">
+        <div class="form-group">
+          <label class="form-label" for="low_risk_min_score">
+            Low Risk Min Score
+          </label>
+          <input type="number" step="1" min="1" max="100" id="low_risk_min_score" name="low_risk_min_score" class="form-control" value="{{ settings.low_risk_min_score }}" required>
+          <small style="color: var(--text-muted); font-size: 0.75rem;">Score >= value is Low Risk.</small>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="medium_risk_min_score">
+            Medium Risk Min Score
+          </label>
+          <input type="number" step="1" min="1" max="100" id="medium_risk_min_score" name="medium_risk_min_score" class="form-control" value="{{ settings.medium_risk_min_score }}" required>
+          <small style="color: var(--text-muted); font-size: 0.75rem;">Score >= value is Medium Risk.</small>
+        </div>
+      </div>
+
+    </div>
+
+  </div>
+
+  <div class="card" style="display: flex; align-items: center; justify-content: flex-end; gap: 1rem;">
+    <button type="reset" class="btn btn-secondary">Reset Changes</button>
+    <button type="submit" class="btn btn-primary" style="padding: 0.65rem 1.75rem;">
+      <i class="bi bi-floppy-fill"></i> Save Dynamic Platform Configuration
+    </button>
+  </div>
+</form>
+{% endblock %}

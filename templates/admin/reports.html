@@ -1,0 +1,81 @@
+{% extends "base.html" %}
+
+{% block title %}AI Integrity Reports — ExamGuard{% endblock %}
+{% block page_title %}AI Integrity Audit Reports Repository{% endblock %}
+
+{% block content %}
+<div class="card">
+  <div class="card-header-flex">
+    <div>
+      <h3 class="card-title"><i class="bi bi-robot text-primary"></i> Generated AI Examination Audit Reports ({{ reports|length }})</h3>
+      <span style="font-size: 0.78rem; color: var(--text-muted);">Synthesized candidate telemetry reports generated via LangChain / Deterministic Agent</span>
+    </div>
+  </div>
+
+  <div class="table-responsive">
+    <table class="custom-table">
+      <thead>
+        <tr>
+          <th>Report ID</th>
+          <th>Session</th>
+          <th>Candidate</th>
+          <th>Exam</th>
+          <th>Integrity Score</th>
+          <th>Risk Level</th>
+          <th>Model Engine</th>
+          <th>Generated At</th>
+          <th>Action</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for rep in reports %}
+        <tr>
+          <td><code>#{{ rep.id }}</code></td>
+          <td><a href="{{ url_for('admin.session_detail', session_id=rep.session_id) }}" style="color: var(--primary); text-decoration: none;">Session #{{ rep.session_id }}</a></td>
+          <td><strong>{{ rep.session.candidate.name if rep.session and rep.session.candidate else 'Unknown' }}</strong></td>
+          <td><span style="font-size: 0.8rem; color: var(--text-secondary);">{{ rep.session.exam.title[:25] if rep.session and rep.session.exam else 'N/A' }}...</span></td>
+          <td>
+            <strong style="color: {% if rep.integrity_score >= 80 %}#34d399{% elif rep.integrity_score >= 50 %}#fbbf24{% else %}#f87171{% endif %};">
+              {{ rep.integrity_score }}
+            </strong>
+          </td>
+          <td><span class="badge badge-{{ rep.risk_level|lower }}">{{ rep.risk_level }}</span></td>
+          <td><span class="badge badge-secondary" style="font-size: 0.68rem;">{{ rep.model_used }}</span></td>
+          <td><span style="font-size: 0.75rem; color: var(--text-muted);">{{ rep.generated_at.strftime('%b %d, %H:%M') if rep.generated_at else 'N/A' }}</span></td>
+          <td>
+            <button class="btn btn-primary btn-sm" onclick="openModal('report-modal-{{ rep.id }}')">
+              <i class="bi bi-file-earmark-text"></i> View Report
+            </button>
+          </td>
+        </tr>
+
+        <!-- Report Modal -->
+        <div id="report-modal-{{ rep.id }}" class="modal-backdrop">
+          <div class="modal-dialog" style="max-width: 780px;">
+            <div class="modal-header">
+              <h4>AI Integrity Audit Report — Session #{{ rep.session_id }}</h4>
+              <button onclick="closeModal('report-modal-{{ rep.id }}')" style="background:none;border:none;color:#fff;font-size:1.25rem;cursor:pointer;">&times;</button>
+            </div>
+            <div class="modal-body">
+              <pre style="background-color: var(--bg-main); border: 1px solid var(--border-color); border-radius: 8px; padding: 1.25rem; font-family: monospace; font-size: 0.8rem; color: #e5e7eb; white-space: pre-wrap; line-height: 1.6; max-height: 450px; overflow-y: auto;">{{ rep.report_text }}</pre>
+            </div>
+            <div class="modal-footer">
+              <button class="btn btn-secondary btn-sm" onclick="window.print()">
+                <i class="bi bi-printer"></i> Print / Export PDF
+              </button>
+              <button class="btn btn-primary btn-sm" onclick="closeModal('report-modal-{{ rep.id }}')">Close</button>
+            </div>
+          </div>
+        </div>
+        {% else %}
+        <tr>
+          <td colspan="9" style="text-align: center; color: var(--text-muted); padding: 2rem;">
+            No AI integrity reports generated yet. Open any examination session to synthesize an AI audit report.
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

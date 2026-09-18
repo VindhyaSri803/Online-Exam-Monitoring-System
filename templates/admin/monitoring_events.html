@@ -1,0 +1,118 @@
+{% extends "base.html" %}
+
+{% block title %}Monitoring Events — ExamGuard{% endblock %}
+{% block page_title %}Raw & Flagged Telemetry Monitoring Events{% endblock %}
+
+{% block content %}
+<!-- Filters Bar -->
+<div class="card" style="padding: 1.25rem; margin-bottom: 1.5rem;">
+  <form method="GET" action="{{ url_for('admin.events_log') }}" style="display: flex; gap: 1rem; align-items: center; flex-wrap: wrap;">
+    <div>
+      <label for="session_id" style="font-size: 0.8rem; font-weight: 600; color: var(--text-secondary); display: block; margin-bottom: 0.25rem;">
+        Session:
+      </label>
+      <select name="session_id" id="session_id" class="form-control" style="width: auto; min-width: 200px;" onchange="this.form.submit()">
+        <option value="">All Sessions</option>
+        {% for s in sessions %}
+        <option value="{{ s.id }}" {% if selected_session_id == s.id %}selected{% endif %}>
+          Session #{{ s.id }} ({{ s.candidate.name if s.candidate else 'Unknown' }})
+        </option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <div>
+      <label for="event_type" style="font-size: 0.8rem; font-weight: 600; color: var(--text-secondary); display: block; margin-bottom: 0.25rem;">
+        Event Type:
+      </label>
+      <select name="event_type" id="event_type" class="form-control" style="width: auto; min-width: 180px;" onchange="this.form.submit()">
+        <option value="">All Event Types</option>
+        {% for et in event_types %}
+        <option value="{{ et }}" {% if selected_event_type == et %}selected{% endif %}>{{ et.replace('_', ' ') }}</option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <div>
+      <label for="severity" style="font-size: 0.8rem; font-weight: 600; color: var(--text-secondary); display: block; margin-bottom: 0.25rem;">
+        Severity:
+      </label>
+      <select name="severity" id="severity" class="form-control" style="width: auto; min-width: 140px;" onchange="this.form.submit()">
+        <option value="">All Severities</option>
+        <option value="INFO" {% if selected_severity == 'INFO' %}selected{% endif %}>INFO</option>
+        <option value="WARNING" {% if selected_severity == 'WARNING' %}selected{% endif %}>WARNING</option>
+        <option value="SUSPICIOUS" {% if selected_severity == 'SUSPICIOUS' %}selected{% endif %}>SUSPICIOUS</option>
+        <option value="CRITICAL" {% if selected_severity == 'CRITICAL' %}selected{% endif %}>CRITICAL</option>
+      </select>
+    </div>
+
+    <div style="margin-left: auto; align-self: flex-end;">
+      <a href="{{ url_for('admin.export_events_csv', session_id=selected_session_id) }}" class="btn btn-secondary btn-sm">
+        <i class="bi bi-filetype-csv text-success"></i> Export Events CSV
+      </a>
+    </div>
+  </form>
+</div>
+
+<!-- Events Table -->
+<div class="card">
+  <div class="card-header-flex">
+    <h3 class="card-title"><i class="bi bi-activity text-primary"></i> Telemetry Events Record (Showing {{ events|length }} latest)</h3>
+  </div>
+
+  <div class="table-responsive">
+    <table class="custom-table">
+      <thead>
+        <tr>
+          <th>Event ID</th>
+          <th>Session</th>
+          <th>Candidate</th>
+          <th>Event Type</th>
+          <th>Severity</th>
+          <th>Duration</th>
+          <th>Description</th>
+          <th>Timestamp (UTC)</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for ev in events %}
+        <tr>
+          <td><code>#{{ ev.id }}</code></td>
+          <td>
+            <a href="{{ url_for('admin.session_detail', session_id=ev.session_id) }}" style="color: var(--primary); text-decoration: none;">
+              #{{ ev.session_id }}
+            </a>
+          </td>
+          <td><strong>{{ ev.session.candidate.name if ev.session and ev.session.candidate else 'Unknown' }}</strong></td>
+          <td>
+            <span class="badge badge-secondary" style="font-size: 0.72rem;">
+              {{ ev.event_type.replace('_', ' ') }}
+            </span>
+          </td>
+          <td>
+            <span class="badge badge-{% if ev.severity == 'CRITICAL' %}high{% elif ev.severity in ['SUSPICIOUS', 'WARNING'] %}medium{% else %}low{% endif %}">
+              {{ ev.severity }}
+            </span>
+          </td>
+          <td>
+            {% if ev.duration and ev.duration > 0 %}
+              <span style="font-size: 0.8rem; color: #fbbf24;">{{ ev.duration|round(1) }}s</span>
+            {% else %}
+              <span style="font-size: 0.75rem; color: var(--text-muted);">—</span>
+            {% endif %}
+          </td>
+          <td><span style="font-size: 0.8rem; color: var(--text-secondary);">{{ ev.description }}</span></td>
+          <td><span style="font-size: 0.75rem; color: var(--text-muted);">{{ ev.timestamp.strftime('%Y-%m-%d %H:%M:%S') if ev.timestamp else '' }}</span></td>
+        </tr>
+        {% else %}
+        <tr>
+          <td colspan="8" style="text-align: center; color: var(--text-muted); padding: 2rem;">
+            No monitoring events found matching your criteria.
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

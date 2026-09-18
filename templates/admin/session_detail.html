@@ -1,0 +1,259 @@
+{% extends "base.html" %}
+
+{% block title %}Session #{{ session_obj.id }} Audit — ExamGuard{% endblock %}
+{% block page_title %}Session Audit & Telemetry Inspection{% endblock %}
+
+{% block content %}
+<!-- Candidate & Session Header Card -->
+<div class="card" style="margin-bottom: 1.5rem;">
+  <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 1.5rem;">
+    <div style="display: flex; align-items: center; gap: 1.25rem;">
+      {% if session_obj.candidate.registration_photo %}
+        <img src="{{ url_for('uploaded_photo', filename=session_obj.candidate.registration_photo) }}" alt="{{ session_obj.candidate.name }}" style="width: 72px; height: 72px; border-radius: 14px; object-fit: cover; border: 2px solid var(--border-color);">
+      {% else %}
+        <div style="width: 72px; height: 72px; border-radius: 14px; background-color: var(--primary-light); color: var(--primary); display: flex; align-items: center; justify-content: center; font-size: 1.75rem; font-weight: 700; border: 2px solid var(--border-color);">
+          {{ session_obj.candidate.name[0] if session_obj.candidate else 'U' }}
+        </div>
+      {% endif %}
+      <div>
+        <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 0.25rem;">
+          <h2 style="font-size: 1.3rem; font-weight: 700;">{{ session_obj.candidate.name }}</h2>
+          <span class="badge badge-{{ session_obj.risk_level|lower }}">{{ session_obj.risk_level }} RISK</span>
+          <span class="badge badge-secondary">{{ session_obj.mode|upper }} TELEMETRY</span>
+        </div>
+        <p style="color: var(--text-secondary); font-size: 0.85rem;">
+          Exam: <strong>{{ session_obj.exam.title }}</strong> • Session: <code>#{{ session_obj.id }}</code>
+          <span style="margin: 0 0.5rem;">•</span>
+          Started: {{ session_obj.start_time.strftime('%Y-%m-%d %H:%M:%S UTC') if session_obj.start_time else 'N/A' }}
+        </p>
+      </div>
+    </div>
+
+    <!-- Incident Review Status Control -->
+    <div style="display: flex; align-items: center; gap: 0.75rem; background-color: var(--bg-card); padding: 0.75rem 1rem; border-radius: 10px; border: 1px solid var(--border-color);">
+      <label for="incident-status-select" style="font-size: 0.8rem; font-weight: 600; color: var(--text-secondary);">
+        <i class="bi bi-flag-fill text-warning"></i> Incident Status:
+      </label>
+      <select id="incident-status-select" data-session-id="{{ session_obj.id }}" class="form-control" style="width: auto; padding: 0.35rem 0.75rem; font-size: 0.82rem;">
+        <option value="New" {% if session_obj.incident_status == 'New' %}selected{% endif %}>New</option>
+        <option value="Under Review" {% if session_obj.incident_status == 'Under Review' %}selected{% endif %}>Under Review</option>
+        <option value="Reviewed" {% if session_obj.incident_status == 'Reviewed' %}selected{% endif %}>Reviewed</option>
+        <option value="Resolved" {% if session_obj.incident_status == 'Resolved' %}selected{% endif %}>Resolved</option>
+      </select>
+    </div>
+  </div>
+</div>
+
+<!-- KPI Metric Cards Grid -->
+<div class="kpi-grid" style="margin-bottom: 1.5rem;">
+  <div class="kpi-card">
+    <div class="kpi-data">
+      <h3>Integrity Score</h3>
+      <div class="kpi-value" style="color: {% if scoring_info.integrity_score >= 80 %}#34d399{% elif scoring_info.integrity_score >= 50 %}#fbbf24{% else %}#f87171{% endif %};">
+        {{ scoring_info.integrity_score }}<span style="font-size: 1rem; color: var(--text-muted);">/100</span>
+      </div>
+      <div class="kpi-subtext">{{ scoring_info.risk_level }} Risk Classification</div>
+    </div>
+    <div class="kpi-icon green"><i class="bi bi-shield-check"></i></div>
+  </div>
+
+  <div class="kpi-card">
+    <div class="kpi-data">
+      <h3>Face Presence Ratio</h3>
+      <div class="kpi-value" style="color: {% if scoring_info.face_presence_ratio >= 0.85 %}#34d399{% elif scoring_info.face_presence_ratio >= 0.7 %}#fbbf24{% else %}#f87171{% endif %};">
+        {{ (scoring_info.face_presence_ratio * 100)|round(1) }}%
+      </div>
+      <div class="kpi-subtext">{{ scoring_info.event_counts.face_absent_count }} absence frames</div>
+    </div>
+    <div class="kpi-icon blue"><i class="bi bi-person-bounding-box"></i></div>
+  </div>
+
+  <div class="kpi-card">
+    <div class="kpi-data">
+      <h3>Tab Switches</h3>
+      <div class="kpi-value" style="color: {% if scoring_info.event_counts.tab_switches > 3 %}#f87171{% elif scoring_info.event_counts.tab_switches > 0 %}#fbbf24{% else %}#34d399{% endif %};">
+        {{ scoring_info.event_counts.tab_switches }}
+      </div>
+      <div class="kpi-subtext">{{ scoring_info.event_counts.window_blurs }} window focus loss events</div>
+    </div>
+    <div class="kpi-icon amber"><i class="bi bi-window-stack"></i></div>
+  </div>
+
+  <div class="kpi-card">
+    <div class="kpi-data">
+      <h3>Assessment Score</h3>
+      <div class="kpi-value" style="color: #38bdf8;">
+        {{ session_obj.total_score }}<span style="font-size: 1rem; color: var(--text-muted);">/{{ session_obj.exam.total_marks }}</span>
+      </div>
+      <div class="kpi-subtext">{{ session_obj.status|title }}</div>
+    </div>
+    <div class="kpi-icon cyan"><i class="bi bi-patch-check-fill"></i></div>
+  </div>
+</div>
+
+<!-- Explainable Scoring Deductions Breakdown -->
+<div class="card" style="margin-bottom: 1.5rem; border-left: 4px solid var(--primary);">
+  <div class="card-header-flex">
+    <h3 class="card-title"><i class="bi bi-calculator-fill text-primary"></i> Explainable Integrity Deductions & Weighting</h3>
+    <span class="badge badge-secondary">Base Score: 100.0</span>
+  </div>
+  <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 1rem;">
+    <div style="background-color: var(--bg-card); padding: 0.85rem; border-radius: 8px;">
+      <span style="font-size: 0.75rem; color: var(--text-muted); display: block;">Face Absence Penalty (30% weight)</span>
+      <strong style="color: #f87171;">-{{ scoring_info.penalties.face_absence }} pts</strong>
+    </div>
+    <div style="background-color: var(--bg-card); padding: 0.85rem; border-radius: 8px;">
+      <span style="font-size: 0.75rem; color: var(--text-muted); display: block;">Tab Switch Penalty (25% weight)</span>
+      <strong style="color: #f87171;">-{{ scoring_info.penalties.tab_switch }} pts</strong>
+    </div>
+    <div style="background-color: var(--bg-card); padding: 0.85rem; border-radius: 8px;">
+      <span style="font-size: 0.75rem; color: var(--text-muted); display: block;">Focus Loss Penalty (20% weight)</span>
+      <strong style="color: #f87171;">-{{ scoring_info.penalties.window_blur }} pts</strong>
+    </div>
+    <div style="background-color: var(--bg-card); padding: 0.85rem; border-radius: 8px;">
+      <span style="font-size: 0.75rem; color: var(--text-muted); display: block;">Suspicious Rules Penalty (25% weight)</span>
+      <strong style="color: #f87171;">-{{ scoring_info.penalties.suspicious_events }} pts</strong>
+    </div>
+  </div>
+  <ul style="list-style: none; font-size: 0.82rem; color: var(--text-secondary); display: flex; flex-direction: column; gap: 0.35rem;">
+    {% for item in scoring_info.deductions_explanation %}
+    <li><i class="bi bi-arrow-right-short text-primary"></i> {{ item }}</li>
+    {% endfor %}
+  </ul>
+</div>
+
+<!-- AI Integrity Report Section -->
+<div class="card" style="margin-bottom: 1.5rem;">
+  <div class="card-header-flex">
+    <h3 class="card-title">
+      <i class="bi bi-robot text-primary"></i> AI Invigilator Integrity Report
+    </h3>
+    <div style="display: flex; gap: 0.5rem; align-items: center;">
+      {% if reports %}
+      <span class="badge badge-info" id="report-model-badge">{{ reports[0].model_used }}</span>
+      {% endif %}
+      <button id="btn-generate-ai-report" data-session-id="{{ session_obj.id }}" class="btn btn-primary btn-sm">
+        <i class="bi bi-lightning-charge-fill"></i> {% if reports %}Re-Generate AI Report{% else %}Generate AI Integrity Report{% endif %}
+      </button>
+    </div>
+  </div>
+
+  <div id="ai-report-box">
+    {% if reports %}
+    <pre id="ai-report-content" style="background-color: var(--bg-main); border: 1px solid var(--border-color); border-radius: 8px; padding: 1.25rem; font-family: monospace; font-size: 0.82rem; color: #e5e7eb; white-space: pre-wrap; line-height: 1.6; max-height: 380px; overflow-y: auto;">{{ reports[0].report_text }}</pre>
+    {% else %}
+    <div style="text-align: center; padding: 2rem; color: var(--text-muted); background-color: var(--bg-card); border-radius: 8px;">
+      <i class="bi bi-robot" style="font-size: 2rem; display: block; margin-bottom: 0.5rem; color: var(--primary);"></i>
+      <p>No AI integrity report generated for this session yet.</p>
+      <p style="font-size: 0.78rem;">Click the button above to synthesize candidate telemetry with LangChain LLM / Ethical Synthesizer.</p>
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+<!-- Flagged Suspicious Events & Incident Evidence -->
+<div class="grid-2" style="margin-bottom: 1.5rem;">
+  <!-- Flagged Rules Table -->
+  <div class="card" style="margin-bottom: 0;">
+    <div class="card-header-flex">
+      <h3 class="card-title"><i class="bi bi-exclamation-octagon-fill text-danger"></i> Flagged Suspicious Rules</h3>
+      <span class="badge badge-danger">{{ suspicious_events|length }} Violations</span>
+    </div>
+    <div class="table-responsive">
+      <table class="custom-table">
+        <thead>
+          <tr>
+            <th>Rule Flagged</th>
+            <th>Severity</th>
+            <th>Description</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for se in suspicious_events %}
+          <tr>
+            <td><strong>{{ se.rule_name }}</strong></td>
+            <td><span class="badge badge-{{ se.severity|lower }}">{{ se.severity }}</span></td>
+            <td><span style="font-size: 0.78rem; color: var(--text-secondary);">{{ se.description }}</span></td>
+          </tr>
+          {% else %}
+          <tr>
+            <td colspan="3" style="text-align: center; color: var(--text-muted); padding: 1.5rem;">
+              No suspicious rules triggered. Clean session.
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Incident Snapshots & Evidence Gallery -->
+  <div class="card" style="margin-bottom: 0;">
+    <div class="card-header-flex">
+      <h3 class="card-title"><i class="bi bi-camera-reels-fill text-warning"></i> Captured Visual Evidence</h3>
+      <span class="badge badge-secondary">{{ evidence_items|length }} Artifacts</span>
+    </div>
+    <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 0.75rem; max-height: 280px; overflow-y: auto;">
+      {% for ev in evidence_items %}
+      <div style="background-color: var(--bg-card); border: 1px solid var(--border-color); border-radius: 8px; overflow: hidden; text-align: center;">
+        <img src="{{ url_for('uploaded_evidence', filename=ev.file_path) }}" alt="{{ ev.description }}" style="width: 100%; aspect-ratio: 4/3; object-fit: cover; cursor: pointer;" onclick="openModal('evidence-modal-{{ ev.id }}')">
+        <div style="padding: 0.35rem 0.5rem; font-size: 0.68rem; color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+          {{ ev.timestamp.strftime('%H:%M:%S') if ev.timestamp else '' }}
+        </div>
+      </div>
+
+      <!-- Lightbox Modal -->
+      <div id="evidence-modal-{{ ev.id }}" class="modal-backdrop">
+        <div class="modal-dialog">
+          <div class="modal-header">
+            <h4>Incident Evidence Snapshot (#{{ ev.id }})</h4>
+            <button onclick="closeModal('evidence-modal-{{ ev.id }}')" style="background:none;border:none;color:#fff;font-size:1.25rem;cursor:pointer;">&times;</button>
+          </div>
+          <div class="modal-body" style="text-align:center;">
+            <img src="{{ url_for('uploaded_evidence', filename=ev.file_path) }}" alt="Evidence Full" style="max-width:100%;border-radius:8px;">
+            <p style="margin-top:1rem;color:var(--text-secondary);font-size:0.85rem;">{{ ev.description }}</p>
+          </div>
+        </div>
+      </div>
+      {% else %}
+      <div style="grid-column: 1/-1; text-align: center; color: var(--text-muted); padding: 1.5rem;">
+        No visual evidence snapshots logged for this session.
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+
+<!-- Chronological Visual Timeline of All Telemetry Events -->
+<div class="card">
+  <div class="card-header-flex">
+    <h3 class="card-title"><i class="bi bi-clock-history text-primary"></i> Chronological Session Event Timeline</h3>
+    <span style="font-size: 0.8rem; color: var(--text-muted);">{{ events|length }} Total Events Recorded</span>
+  </div>
+
+  <div class="timeline">
+    {% for ev in events %}
+    <div class="timeline-item">
+      <div class="timeline-dot {{ ev.severity }}"></div>
+      <div class="timeline-content">
+        <div class="timeline-header">
+          <span class="timeline-type" style="color: {% if ev.severity == 'CRITICAL' %}#f87171{% elif ev.severity == 'SUSPICIOUS' %}#fb923c{% elif ev.severity == 'WARNING' %}#fbbf24{% else %}#38bdf8{% endif %};">
+            {{ ev.event_type.replace('_', ' ') }}
+          </span>
+          <span class="timeline-time">
+            {{ ev.timestamp.strftime('%H:%M:%S UTC') if ev.timestamp else '' }}
+          </span>
+        </div>
+        <div class="timeline-desc">
+          {{ ev.description }}
+          {% if ev.duration and ev.duration > 0 %}
+          <span class="badge badge-secondary" style="font-size: 0.65rem; margin-left: 0.5rem;">Duration: {{ ev.duration|round(1) }}s</span>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+
+{% endblock %}

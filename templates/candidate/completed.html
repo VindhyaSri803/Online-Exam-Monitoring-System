@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+
+{% block title %}Assessment Completed — ExamGuard{% endblock %}
+{% block page_title %}Session Submission Receipt{% endblock %}
+
+{% block content %}
+<div style="max-width: 680px; margin: 2rem auto;">
+
+  <div class="card" style="text-align: center; padding: 2.5rem 2rem;">
+    <div style="display: inline-flex; align-items: center; justify-content: center; width: 72px; height: 72px; background-color: var(--success-light); color: var(--success); border-radius: 50%; margin-bottom: 1.25rem; font-size: 2.5rem; border: 2px solid rgba(16,185,129,0.3);">
+      <i class="bi bi-check2-circle"></i>
+    </div>
+
+    <h2 style="font-size: 1.5rem; font-weight: 700; color: #f9fafb; margin-bottom: 0.5rem;">
+      Examination Successfully Submitted
+    </h2>
+    <p style="color: var(--text-secondary); font-size: 0.95rem; margin-bottom: 2rem;">
+      Your answers and verification telemetry for <strong>{{ exam.title }}</strong> have been securely recorded.
+    </p>
+
+    <!-- Submission Receipt Box -->
+    <div style="background-color: var(--bg-card); border: 1px solid var(--border-color); border-radius: 10px; padding: 1.5rem; text-align: left; margin-bottom: 2rem;">
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; font-size: 0.88rem;">
+        <div>
+          <span style="color: var(--text-muted); display: block; font-size: 0.75rem; text-transform: uppercase;">Candidate</span>
+          <strong>{{ user.name }}</strong>
+        </div>
+        <div>
+          <span style="color: var(--text-muted); display: block; font-size: 0.75rem; text-transform: uppercase;">Session ID</span>
+          <code>#{{ session_obj.id }}</code>
+        </div>
+        <div>
+          <span style="color: var(--text-muted); display: block; font-size: 0.75rem; text-transform: uppercase;">Completion Time</span>
+          <span>{{ session_obj.end_time.strftime('%b %d, %Y - %H:%M:%S UTC') if session_obj.end_time else 'Submitted' }}</span>
+        </div>
+        <div>
+          <span style="color: var(--text-muted); display: block; font-size: 0.75rem; text-transform: uppercase;">Assessment Result</span>
+          <strong style="color: var(--primary);">{{ session_obj.total_score }} / {{ exam.total_marks }} Marks</strong>
+        </div>
+      </div>
+    </div>
+
+    <a href="{{ url_for('candidate.dashboard') }}" class="btn btn-primary" style="padding: 0.75rem 2rem;">
+      <i class="bi bi-house-door-fill"></i> Return to Candidate Dashboard
+    </a>
+  </div>
+
+</div>
+{% endblock %}

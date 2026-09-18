@@ -1,0 +1,117 @@
+{% extends "base.html" %}
+
+{% block title %}Data Export Hub — ExamGuard{% endblock %}
+{% block page_title %}Institutional Data Export & Auditing Hub{% endblock %}
+
+{% block content %}
+<div style="max-width: 960px; margin: 0 auto; padding-bottom: 3rem;">
+
+  <!-- Summary Banner -->
+  <div class="card" style="margin-bottom: 2rem; border-left: 4px solid var(--primary);">
+    <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 1rem;">
+      <div>
+        <h2 style="font-size: 1.3rem; font-weight: 700; color: #f9fafb; margin-bottom: 0.25rem;">
+          <i class="bi bi-box-arrow-down text-primary me-1"></i> Data Export & Archival Center
+        </h2>
+        <p style="color: var(--text-secondary); font-size: 0.85rem; margin: 0;">
+          Download complete candidate telemetry logs, integrity scores, risk labels, and cluster assignments.
+        </p>
+      </div>
+      <div style="display: flex; gap: 1rem;">
+        <span class="badge badge-info" style="padding: 0.5rem 0.85rem; font-size: 0.82rem;">
+          {{ total_sessions }} Total Sessions
+        </span>
+        <span class="badge badge-secondary" style="padding: 0.5rem 0.85rem; font-size: 0.82rem;">
+          {{ total_events }} Telemetry Events
+        </span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Export Options Cards Grid -->
+  <div class="grid-2" style="margin-bottom: 2rem;">
+
+    <!-- Option 1: CSV Export -->
+    <div class="card" style="display: flex; flex-direction: column; justify-content: space-between; border-top: 4px solid #10b981;">
+      <div>
+        <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1rem;">
+          <div style="width: 44px; height: 44px; border-radius: 10px; background: rgba(16,185,129,0.15); display: flex; align-items: center; justify-content: center; color: #10b981; font-size: 1.5rem;">
+            <i class="bi bi-file-earmark-spreadsheet-fill"></i>
+          </div>
+          <div>
+            <h3 style="font-size: 1.15rem; font-weight: 700; color: #f3f4f6;">Session Data CSV Export</h3>
+            <span style="font-size: 0.75rem; color: var(--text-muted);">Tabular spreadsheet format</span>
+          </div>
+        </div>
+        <p style="font-size: 0.85rem; color: var(--text-secondary); line-height: 1.5; margin-bottom: 1.25rem;">
+          Includes candidate profiles, exam titles, start/end timestamps, face presence ratios, calculated integrity scores, assigned risk classifications, behavioral cluster labels, and flagged anomaly counts.
+        </p>
+      </div>
+
+      <div style="display: flex; flex-direction: column; gap: 0.5rem;">
+        <a href="{{ url_for('admin.export_csv') }}" class="btn btn-primary" style="background-color: #10b981; border-color: #059669; width: 100%;">
+          <i class="bi bi-download"></i> Export All Sessions CSV
+        </a>
+        <a href="{{ url_for('admin.export_events_csv') }}" class="btn btn-secondary btn-sm" style="width: 100%;">
+          <i class="bi bi-activity"></i> Export Detailed Events CSV
+        </a>
+      </div>
+    </div>
+
+    <!-- Option 2: JSON Export -->
+    <div class="card" style="display: flex; flex-direction: column; justify-content: space-between; border-top: 4px solid #3b82f6;">
+      <div>
+        <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1rem;">
+          <div style="width: 44px; height: 44px; border-radius: 10px; background: rgba(59,130,246,0.15); display: flex; align-items: center; justify-content: center; color: #3b82f6; font-size: 1.5rem;">
+            <i class="bi bi-filetype-json"></i>
+          </div>
+          <div>
+            <h3 style="font-size: 1.15rem; font-weight: 700; color: #f3f4f6;">Structured Dataset JSON</h3>
+            <span style="font-size: 0.75rem; color: var(--text-muted);">Hierarchical programmatic data</span>
+          </div>
+        </div>
+        <p style="font-size: 0.85rem; color: var(--text-secondary); line-height: 1.5; margin-bottom: 1.25rem;">
+          Export the complete hierarchical telemetry tree, candidate metadata, question responses, itemized deductions, and suspicious rule timestamps in clean, standards-compliant JSON.
+        </p>
+      </div>
+
+      <div style="display: flex; flex-direction: column; gap: 0.5rem;">
+        <a href="{{ url_for('admin.export_json') }}" class="btn btn-primary" style="width: 100%;">
+          <i class="bi bi-download"></i> Export Full Dataset JSON
+        </a>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Filtered Examination Export Section -->
+  <div class="card">
+    <div class="card-header-flex">
+      <h3 class="card-title"><i class="bi bi-funnel-fill text-warning"></i> Filtered Export by Examination</h3>
+    </div>
+    <p style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 1rem;">
+      Select a specific examination to export only candidate sessions belonging to that test cohort:
+    </p>
+
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1rem;">
+      {% for exam in exams %}
+      <div style="background-color: var(--bg-card); padding: 1rem; border-radius: 8px; border: 1px solid var(--border-color); display: flex; align-items: center; justify-content: space-between;">
+        <div>
+          <div style="font-weight: 600; font-size: 0.9rem; color: #f3f4f6;">{{ exam.title }}</div>
+          <span style="font-size: 0.75rem; color: var(--text-muted);">{{ exam.duration_minutes }} mins • {{ exam.sessions|length }} Sessions</span>
+        </div>
+        <div style="display: flex; gap: 0.35rem;">
+          <a href="{{ url_for('admin.export_csv', exam_id=exam.id) }}" class="btn btn-secondary btn-sm" title="Export CSV for this exam">
+            CSV
+          </a>
+          <a href="{{ url_for('admin.export_json', exam_id=exam.id) }}" class="btn btn-secondary btn-sm" title="Export JSON for this exam">
+            JSON
+          </a>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+
+</div>
+{% endblock %}

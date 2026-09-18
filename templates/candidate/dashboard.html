@@ -1,0 +1,175 @@
+{% extends "base.html" %}
+
+{% block title %}Candidate Dashboard — ExamGuard{% endblock %}
+{% block page_title %}Candidate Assessment Portal{% endblock %}
+
+{% block content %}
+<div style="max-width: 1100px; margin: 0 auto;">
+
+  <!-- Active Exam In-Progress Warning Banner -->
+  {% if active_session %}
+  <div class="card" style="border: 2px solid var(--warning); background: rgba(245, 158, 11, 0.1); margin-bottom: 2rem;">
+    <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 1rem;">
+      <div style="display: flex; align-items: center; gap: 1rem;">
+        <div style="width: 48px; height: 48px; border-radius: 12px; background-color: var(--warning); display: flex; align-items: center; justify-content: center; font-size: 1.5rem; color: #000;">
+          <i class="bi bi-play-circle-fill"></i>
+        </div>
+        <div>
+          <h3 style="font-size: 1.1rem; font-weight: 700; color: #fbbf24;">Active Examination in Progress</h3>
+          <p style="font-size: 0.85rem; color: var(--text-secondary); margin-top: 0.2rem;">
+            You have an ongoing session for <strong>{{ active_session.exam.title }}</strong>.
+          </p>
+        </div>
+      </div>
+      <a href="{{ url_for('candidate.exam_room', session_id=active_session.id) }}" class="btn btn-primary" style="background-color: #f59e0b; border-color: #d97706; color: #000; font-weight: 700;">
+        <i class="bi bi-box-arrow-in-right"></i> Resume Examination Now
+      </a>
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- Candidate Identity Profile Card -->
+  <div class="card" style="margin-bottom: 2rem;">
+    <div style="display: flex; align-items: center; gap: 1.5rem; flex-wrap: wrap;">
+      {% if user.registration_photo %}
+        <img src="{{ url_for('uploaded_photo', filename=user.registration_photo) }}" alt="{{ user.name }}" style="width: 80px; height: 80px; border-radius: 16px; object-fit: cover; border: 3px solid var(--border-color);">
+      {% else %}
+        <div style="width: 80px; height: 80px; border-radius: 16px; background-color: var(--primary-light); color: var(--primary); display: flex; align-items: center; justify-content: center; font-size: 2rem; font-weight: 700; border: 3px solid var(--border-color);">
+          {{ user.name[0] }}
+        </div>
+      {% endif %}
+      <div style="flex: 1; min-width: 240px;">
+        <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 0.25rem;">
+          <h2 style="font-size: 1.35rem; font-weight: 700;">{{ user.name }}</h2>
+          <span class="badge badge-info">Candidate ID #{{ user.id }}</span>
+        </div>
+        <p style="color: var(--text-secondary); font-size: 0.9rem;">
+          <i class="bi bi-envelope-fill text-muted me-1"></i> {{ user.email }}
+          <span style="margin: 0 0.5rem;">•</span>
+          <i class="bi bi-shield-check text-success me-1"></i> Identity Verified
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Available Examinations Grid -->
+  <div class="card-header-flex">
+    <h3 class="card-title">
+      <i class="bi bi-journal-bookmark-fill text-primary"></i> Available Examinations
+    </h3>
+    <span style="font-size: 0.8rem; color: var(--text-muted);">Institutional Proctored Assessments</span>
+  </div>
+
+  <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 1.5rem; margin-bottom: 2.5rem;">
+    {% for exam in exams %}
+    <div class="card" style="margin-bottom: 0; display: flex; flex-direction: column; justify-content: space-between; border-left: 4px solid var(--primary);">
+      <div>
+        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.75rem;">
+          <span class="badge badge-secondary">{{ exam.duration_minutes }} Minutes</span>
+          <span class="badge badge-info">{{ exam.total_marks }} Marks</span>
+        </div>
+        <h4 style="font-size: 1.1rem; font-weight: 700; margin-bottom: 0.5rem; color: #f3f4f6;">{{ exam.title }}</h4>
+        <p style="font-size: 0.85rem; color: var(--text-secondary); line-height: 1.5; margin-bottom: 1.25rem;">
+          {{ exam.description }}
+        </p>
+      </div>
+
+      <div style="padding-top: 1rem; border-top: 1px solid var(--border-color); display: flex; flex-direction: column; gap: 0.5rem;">
+        <a href="{{ url_for('candidate.instructions', exam_id=exam.id) }}" class="btn btn-primary" style="width: 100%;">
+          <i class="bi bi-card-checklist"></i> View Instructions & Start Exam
+        </a>
+        <div style="display: flex; gap: 0.5rem;">
+          <a href="{{ url_for('candidate.start_exam', exam_id=exam.id, mode='live') }}" class="btn btn-secondary btn-sm" style="flex: 1; font-size: 0.78rem;">
+            <i class="bi bi-camera-video-fill text-primary"></i> Direct Live
+          </a>
+          <a href="{{ url_for('candidate.start_exam', exam_id=exam.id, mode='simulated') }}" class="btn btn-secondary btn-sm" style="flex: 1; font-size: 0.78rem;">
+            <i class="bi bi-cpu-fill text-info"></i> Direct Demo
+          </a>
+        </div>
+      </div>
+    </div>
+    {% else %}
+    <div class="card" style="text-align: center; padding: 2rem; color: var(--text-muted);">
+      <p>No active examinations are currently published.</p>
+    </div>
+    {% endfor %}
+  </div>
+
+  <!-- Past Examination Sessions History -->
+  <div class="card">
+    <div class="card-header-flex">
+      <h3 class="card-title">
+        <i class="bi bi-clock-history text-primary"></i> My Assessment History
+      </h3>
+    </div>
+
+    <div class="table-responsive">
+      <table class="custom-table">
+        <thead>
+          <tr>
+            <th>Session ID</th>
+            <th>Examination</th>
+            <th>Date & Time</th>
+            <th>Status</th>
+            <th>Score Earned</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for sess in past_sessions %}
+          <tr>
+            <td><code>#{{ sess.id }}</code></td>
+            <td><strong>{{ sess.exam.title }}</strong></td>
+            <td>{{ sess.start_time.strftime('%b %d, %Y - %H:%M') if sess.start_time else 'N/A' }}</td>
+            <td>
+              {% if sess.status == 'completed' %}
+                <span class="badge badge-success">Completed</span>
+              {% else %}
+                <span class="badge badge-warning">In Progress</span>
+              {% endif %}
+            </td>
+            <td>
+              {% if sess.status == 'completed' %}
+                <strong>{{ sess.total_score }}</strong> / {{ sess.exam.total_marks }}
+              {% else %}
+                <span class="text-muted">—</span>
+              {% endif %}
+            </td>
+            <td>
+              {% if sess.status == 'completed' %}
+                <a href="{{ url_for('candidate.completed', session_id=sess.id) }}" class="btn btn-secondary btn-sm">
+                  <i class="bi bi-check-circle"></i> View Summary
+                </a>
+              {% else %}
+                <a href="{{ url_for('candidate.exam_room', session_id=sess.id) }}" class="btn btn-primary btn-sm">
+                  Resume
+                </a>
+              {% endif %}
+            </td>
+          </tr>
+          {% else %}
+          <tr>
+            <td colspan="6" style="text-align: center; color: var(--text-muted); padding: 1.5rem;">
+              No examination sessions taken yet.
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Examination Conduct Guidelines Checklist -->
+  <div class="card" style="background-color: rgba(31, 41, 55, 0.5); border-color: rgba(55, 65, 81, 0.5);">
+    <h4 style="font-size: 0.95rem; font-weight: 600; margin-bottom: 0.75rem; color: #9ca3af;">
+      <i class="bi bi-info-circle-fill text-primary me-1"></i> Candidate Examination Conduct & Privacy Notice
+    </h4>
+    <ul style="padding-left: 1.25rem; font-size: 0.82rem; color: var(--text-muted); line-height: 1.6;">
+      <li>Please ensure your face remains clearly visible in the webcam viewport throughout the assessment.</li>
+      <li>Do not switch tabs, minimize the browser, or access external applications during the active timer.</li>
+      <li>ExamGuard monitors presence metadata and browser telemetry in accordance with institutional academic integrity policies.</li>
+    </ul>
+  </div>
+
+</div>
+{% endblock %}

@@ -1,0 +1,288 @@
+{% extends "base.html" %}
+
+{% block title %}Invigilator Dashboard — ExamGuard{% endblock %}
+{% block page_title %}Institutional Monitoring Dashboard{% endblock %}
+
+{% block content %}
+<!-- KPI Metric Cards Grid (6 Cards) -->
+<div class="kpi-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 1.5rem;">
+  <div class="kpi-card">
+    <div class="kpi-data">
+      <h3>Total Candidates</h3>
+      <div class="kpi-value">{{ kpis.total_candidates }}</div>
+      <div class="kpi-subtext">Registered test-takers</div>
+    </div>
+    <div class="kpi-icon blue"><i class="bi bi-people-fill"></i></div>
+  </div>
+
+  <div class="kpi-card">
+    <div class="kpi-data">
+      <h3>Active Exams</h3>
+      <div class="kpi-value" style="color: #38bdf8;">{{ kpis.active_exams }}</div>
+      <div class="kpi-subtext">{{ kpis.active_sessions }} active sessions</div>
+    </div>
+    <div class="kpi-icon cyan"><i class="bi bi-journal-bookmark-fill"></i></div>
+  </div>
+
+  <div class="kpi-card">
+    <div class="kpi-data">
+      <h3>Completed Exams</h3>
+      <div class="kpi-value" style="color: #34d399;">{{ kpis.completed_sessions }}</div>
+      <div class="kpi-subtext">Evaluated sessions</div>
+    </div>
+    <div class="kpi-icon green"><i class="bi bi-check-circle-fill"></i></div>
+  </div>
+
+  <div class="kpi-card">
+    <div class="kpi-data">
+      <h3>Avg Integrity Score</h3>
+      <div class="kpi-value" style="color: {% if kpis.average_integrity_score >= 80 %}#34d399{% elif kpis.average_integrity_score >= 50 %}#fbbf24{% else %}#f87171{% endif %};">
+        {{ kpis.average_integrity_score }}<span style="font-size: 0.9rem; color: var(--text-muted);">/100</span>
+      </div>
+      <div class="kpi-subtext">Avg Face: {{ kpis.average_face_presence_pct }}%</div>
+    </div>
+    <div class="kpi-icon green"><i class="bi bi-shield-check"></i></div>
+  </div>
+
+  <div class="kpi-card">
+    <div class="kpi-data">
+      <h3>Attention Required</h3>
+      <div class="kpi-value" style="color: #fbbf24;">{{ kpis.attention_required }}</div>
+      <div class="kpi-subtext">{{ kpis.medium_risk_count }} medium risk alerts</div>
+    </div>
+    <div class="kpi-icon amber"><i class="bi bi-exclamation-triangle-fill"></i></div>
+  </div>
+
+  <div class="kpi-card">
+    <div class="kpi-data">
+      <h3>High-Risk Sessions</h3>
+      <div class="kpi-value" style="color: #f87171;">{{ kpis.high_risk_sessions }}</div>
+      <div class="kpi-subtext">Requires invigilator audit</div>
+    </div>
+    <div class="kpi-icon red"><i class="bi bi-shield-exclamation"></i></div>
+  </div>
+</div>
+
+<!-- Exam Filter & Action Bar -->
+<div class="card" style="padding: 1rem 1.5rem; margin-bottom: 1.75rem;">
+  <form method="GET" action="{{ url_for('admin.dashboard') }}" style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 1rem;">
+    <div style="display: flex; align-items: center; gap: 1rem;">
+      <label for="exam_id" style="font-size: 0.85rem; font-weight: 600; color: var(--text-secondary);">
+        <i class="bi bi-funnel-fill text-primary"></i> Filter by Examination:
+      </label>
+      <select name="exam_id" id="exam_id" class="form-control" style="width: auto; min-width: 280px;" onchange="this.form.submit()">
+        <option value="">All Examinations (Cohort View)</option>
+        {% for exam in exams %}
+        <option value="{{ exam.id }}" {% if selected_exam_id == exam.id %}selected{% endif %}>{{ exam.title }}</option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <div style="display: flex; gap: 0.75rem;">
+      <a href="{{ url_for('admin.clustering') }}" class="btn btn-secondary btn-sm">
+        <i class="bi bi-diagram-3-fill text-primary"></i> View K-Means Clusters
+      </a>
+      <a href="{{ url_for('admin.analytics') }}" class="btn btn-secondary btn-sm">
+        <i class="bi bi-bar-chart-fill text-success"></i> Full Analytics Hub
+      </a>
+    </div>
+  </form>
+</div>
+
+<!-- Visualizations Row 1: Score Distribution & Risk Distribution -->
+<div class="grid-2" style="margin-bottom: 1.5rem;">
+  <div class="card" style="margin-bottom: 0;">
+    <div class="card-header-flex">
+      <h3 class="card-title"><i class="bi bi-bar-chart-steps text-primary"></i> Chart 1: Integrity Score Distribution</h3>
+    </div>
+    <div style="height: 260px; position: relative;">
+      <canvas id="chart-score-dist"></canvas>
+    </div>
+  </div>
+
+  <div class="card" style="margin-bottom: 0;">
+    <div class="card-header-flex">
+      <h3 class="card-title"><i class="bi bi-pie-chart-fill text-warning"></i> Chart 2: Risk-Level Distribution</h3>
+    </div>
+    <div style="height: 260px; position: relative;">
+      <canvas id="chart-risk-dist"></canvas>
+    </div>
+  </div>
+</div>
+
+<!-- Visualizations Row 2: Event Frequency & Scatter Plot -->
+<div class="grid-2" style="margin-bottom: 2rem;">
+  <div class="card" style="margin-bottom: 0;">
+    <div class="card-header-flex">
+      <h3 class="card-title"><i class="bi bi-activity text-info"></i> Chart 3: Telemetry Event Frequency</h3>
+    </div>
+    <div style="height: 260px; position: relative;">
+      <canvas id="chart-event-freq"></canvas>
+    </div>
+  </div>
+
+  <div class="card" style="margin-bottom: 0;">
+    <div class="card-header-flex">
+      <h3 class="card-title"><i class="bi bi-scatter text-danger"></i> Chart 6: Score vs. Suspicious Events</h3>
+    </div>
+    <div style="height: 260px; position: relative;">
+      <canvas id="chart-scatter"></canvas>
+    </div>
+  </div>
+</div>
+
+<!-- Recent Sessions & Live Alerts Grid -->
+<div class="grid-2">
+  <!-- Recent Sessions Table -->
+  <div class="card">
+    <div class="card-header-flex">
+      <h3 class="card-title"><i class="bi bi-person-video3 text-primary"></i> Recent Exam Sessions</h3>
+      <a href="{{ url_for('admin.sessions') }}" class="btn btn-secondary btn-sm">View All</a>
+    </div>
+
+    <div class="table-responsive">
+      <table class="custom-table">
+        <thead>
+          <tr>
+            <th>Candidate</th>
+            <th>Exam</th>
+            <th>Score</th>
+            <th>Risk</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for s in recent_sessions %}
+          <tr>
+            <td>
+              <strong>{{ s.candidate.name if s.candidate else 'Unknown' }}</strong>
+            </td>
+            <td><span style="font-size: 0.8rem; color: var(--text-secondary);">{{ s.exam.title[:25] }}...</span></td>
+            <td>
+              <strong>{{ s.integrity_score }}</strong>/100
+            </td>
+            <td>
+              <span class="badge badge-{{ s.risk_level|lower }}">{{ s.risk_level }}</span>
+            </td>
+            <td>
+              <a href="{{ url_for('admin.session_detail', session_id=s.id) }}" class="btn btn-secondary btn-sm" style="padding: 0.25rem 0.5rem; font-size: 0.72rem;">
+                Audit
+              </a>
+            </td>
+          </tr>
+          {% else %}
+          <tr>
+            <td colspan="5" style="text-align: center; color: var(--text-muted); padding: 1.5rem;">
+              No recent sessions logged.
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Recent Alerts Queue -->
+  <div class="card">
+    <div class="card-header-flex">
+      <h3 class="card-title"><i class="bi bi-bell-fill text-danger"></i> Flagged Incidents & Alerts</h3>
+      <a href="{{ url_for('admin.alerts') }}" class="btn btn-secondary btn-sm">View Queue</a>
+    </div>
+
+    <div style="display: flex; flex-direction: column; gap: 0.85rem;">
+      {% for alert in recent_alerts %}
+      <div style="background-color: var(--bg-card); border: 1px solid var(--border-color); border-left: 4px solid {% if alert.severity == 'HIGH' %}var(--danger){% elif alert.severity == 'MEDIUM' %}var(--warning){% else %}var(--info){% endif %}; border-radius: 8px; padding: 0.85rem 1rem;">
+        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.25rem;">
+          <strong style="font-size: 0.85rem;">{{ alert.title }}</strong>
+          <span class="badge badge-{{ alert.severity|lower }}">{{ alert.severity }}</span>
+        </div>
+        <p style="font-size: 0.78rem; color: var(--text-secondary); margin-bottom: 0.35rem;">
+          {{ alert.description }}
+        </p>
+        <div style="display: flex; align-items: center; justify-content: space-between; font-size: 0.72rem; color: var(--text-muted);">
+          <span>Candidate: <strong>{{ alert.candidate.name if alert.candidate else 'N/A' }}</strong></span>
+          <a href="{{ url_for('admin.session_detail', session_id=alert.session_id) }}" style="color: var(--primary); text-decoration: none; font-weight: 600;">
+            Review Session #{{ alert.session_id }} &rarr;
+          </a>
+        </div>
+      </div>
+      {% else %}
+      <p style="color: var(--text-muted); font-size: 0.85rem; text-align: center; padding: 1.5rem;">
+        No active alerts in queue.
+      </p>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+
+<!-- Recent Events Table -->
+<div class="card" style="margin-top: 1.75rem;">
+  <div class="card-header-flex">
+    <h3 class="card-title"><i class="bi bi-activity text-primary"></i> Recent Monitoring Events</h3>
+    <a href="{{ url_for('admin.events_log') }}" class="btn btn-secondary btn-sm">View All Events</a>
+  </div>
+
+  <div class="table-responsive">
+    <table class="custom-table">
+      <thead>
+        <tr>
+          <th>Candidate</th>
+          <th>Event</th>
+          <th>Time</th>
+          <th>Severity</th>
+          <th>Session</th>
+          <th>Status</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for ev in recent_events %}
+        <tr>
+          <td>
+            <strong>{{ ev.session.candidate.name if ev.session and ev.session.candidate else 'Candidate #' ~ (ev.session.candidate_id if ev.session else 'N/A') }}</strong>
+          </td>
+          <td>
+            <span class="badge badge-secondary" style="font-size: 0.75rem;">{{ ev.event_type }}</span>
+            <div style="font-size: 0.72rem; color: var(--text-muted); margin-top: 2px;">{{ ev.description[:40] }}{% if ev.description|length > 40 %}...{% endif %}</div>
+          </td>
+          <td style="font-size: 0.8rem; color: var(--text-secondary);">
+            {{ ev.timestamp.strftime('%H:%M:%S') if ev.timestamp else 'N/A' }}
+          </td>
+          <td>
+            <span class="badge badge-{% if ev.severity == 'CRITICAL' %}danger{% elif ev.severity == 'SUSPICIOUS' %}warning{% elif ev.severity == 'WARNING' %}medium{% else %}info{% endif %}">
+              {{ ev.severity }}
+            </span>
+          </td>
+          <td>
+            <a href="{{ url_for('admin.session_detail', session_id=ev.session_id) }}" style="color: var(--primary); text-decoration: none; font-weight: 600; font-size: 0.8rem;">
+              Session #{{ ev.session_id }}
+            </a>
+          </td>
+          <td>
+            <span class="badge badge-{% if ev.session and ev.session.status == 'completed' %}success{% else %}primary{% endif %}">
+              {{ ev.session.status if ev.session else 'Logged' }}
+            </span>
+          </td>
+        </tr>
+        {% else %}
+        <tr>
+          <td colspan="6" style="text-align: center; color: var(--text-muted); padding: 1.5rem;">
+            No telemetry monitoring events logged yet.
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script src="{{ url_for('static', filename='js/charts.js') }}"></script>
+<script>
+  document.addEventListener("DOMContentLoaded", () => {
+    const rawChartData = {{ chart_data|tojson }};
+    initDashboardCharts(rawChartData);
+  });
+</script>
+{% endblock %}

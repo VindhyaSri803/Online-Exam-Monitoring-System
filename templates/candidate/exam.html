@@ -1,0 +1,203 @@
+{% extends "base.html" %}
+
+{% block title %}Examination: {{ exam.title }} — ExamGuard{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/exam.css') }}">
+{% endblock %}
+
+{% block content %}
+<div class="exam-container">
+
+  <!-- ================= TOP: Exam Title, Session ID, Monitoring Indicator ================= -->
+  <header class="exam-top-strip">
+    <div class="exam-top-meta">
+      <h1 class="exam-main-title">{{ exam.title }}</h1>
+      <div class="exam-session-info">
+        <span><i class="bi bi-person-badge text-primary me-1"></i> Candidate: <strong>{{ user.name }}</strong></span>
+        <span class="mx-2 text-muted">•</span>
+        <span><i class="bi bi-hash text-info me-1"></i> Session ID: <code>#{{ session_obj.id }}</code></span>
+      </div>
+    </div>
+    <div class="exam-top-monitoring">
+      <div class="monitoring-live-badge">
+        <span class="monitoring-pulse-dot"></span>
+        <span class="monitoring-badge-text">Monitoring Active</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- ================= MAIN BODY: 3-Column Layout (LEFT, CENTER, RIGHT) ================= -->
+  <div class="exam-three-col-layout">
+
+    <!-- ===== LEFT: Question numbers / Navigation Palette ===== -->
+    <aside class="exam-col-left">
+      <div class="card question-palette-card">
+        <div class="palette-header">
+          <h3 class="palette-title"><i class="bi bi-grid-3x3-gap-fill text-primary me-2"></i>Questions</h3>
+          <span class="badge badge-secondary">{{ questions|length }} Total</span>
+        </div>
+        <div class="question-nav-grid">
+          {% for q in questions %}
+          <button type="button" class="q-nav-btn {% if loop.first %}active{% endif %} {% if saved_answers.get(q.id|string) %}answered{% endif %}" id="q-nav-{{ loop.index0 }}" title="Question {{ loop.index }}">
+            {{ loop.index }}
+          </button>
+          {% endfor %}
+        </div>
+        <div class="palette-legend">
+          <div class="legend-item"><span class="legend-box active"></span> Current</div>
+          <div class="legend-item"><span class="legend-box answered"></span> Answered</div>
+          <div class="legend-item"><span class="legend-box pending"></span> Unanswered</div>
+        </div>
+      </div>
+    </aside>
+
+    <!-- ===== CENTER: Question, Multiple-choice Options, Previous, Next ===== -->
+    <main class="exam-col-center">
+      <form id="exam-submission-form" method="POST" action="{{ url_for('candidate.submit_exam', session_id=session_obj.id) }}">
+        {% for q in questions %}
+        <div class="question-card {% if loop.first %}active{% endif %}" id="q-card-{{ loop.index0 }}" data-question-index="{{ loop.index0 }}">
+          <div class="question-card-header">
+            <span class="badge badge-primary">Question {{ loop.index }} of {{ questions|length }}</span>
+            <span class="question-marks-badge">{{ q.marks }} Marks</span>
+          </div>
+
+          <div class="question-text">
+            {{ q.question_text }}
+          </div>
+
+          <div class="options-list">
+            <label class="option-item {% if saved_answers.get(q.id|string) == 'A' %}selected{% endif %}">
+              <input type="radio" name="question_{{ q.id }}" value="A" class="option-radio" {% if saved_answers.get(q.id|string) == 'A' %}checked{% endif %}>
+              <span class="option-label"><strong>A.</strong> {{ q.option_a }}</span>
+            </label>
+
+            <label class="option-item {% if saved_answers.get(q.id|string) == 'B' %}selected{% endif %}">
+              <input type="radio" name="question_{{ q.id }}" value="B" class="option-radio" {% if saved_answers.get(q.id|string) == 'B' %}checked{% endif %}>
+              <span class="option-label"><strong>B.</strong> {{ q.option_b }}</span>
+            </label>
+
+            <label class="option-item {% if saved_answers.get(q.id|string) == 'C' %}selected{% endif %}">
+              <input type="radio" name="question_{{ q.id }}" value="C" class="option-radio" {% if saved_answers.get(q.id|string) == 'C' %}checked{% endif %}>
+              <span class="option-label"><strong>C.</strong> {{ q.option_c }}</span>
+            </label>
+
+            <label class="option-item {% if saved_answers.get(q.id|string) == 'D' %}selected{% endif %}">
+              <input type="radio" name="question_{{ q.id }}" value="D" class="option-radio" {% if saved_answers.get(q.id|string) == 'D' %}checked{% endif %}>
+              <span class="option-label"><strong>D.</strong> {{ q.option_d }}</span>
+            </label>
+          </div>
+        </div>
+        {% endfor %}
+
+        <!-- Navigation Controls: Previous / Next -->
+        <div class="exam-nav-controls">
+          <button type="button" class="btn btn-secondary" id="btn-prev-q" disabled>
+            <i class="bi bi-chevron-left me-1"></i> Previous
+          </button>
+          <button type="button" class="btn btn-primary" id="btn-next-q">
+            Next <i class="bi bi-chevron-right ms-1"></i>
+          </button>
+        </div>
+      </form>
+    </main>
+
+    <!-- ===== RIGHT: Candidate Info, Countdown Timer, Webcam Preview, Monitoring Status ===== -->
+    <aside class="exam-col-right">
+
+      <!-- 1. Candidate Information -->
+      <div class="card candidate-profile-card">
+        <div class="candidate-avatar-row">
+          <div class="candidate-avatar">
+            {% if user.registration_photo %}
+            <img src="{{ url_for('uploaded_photo', filename=user.registration_photo) }}" alt="Candidate Photo" class="candidate-photo-thumb">
+            {% else %}
+            <i class="bi bi-person-circle"></i>
+            {% endif %}
+          </div>
+          <div class="candidate-details">
+            <h4 class="candidate-name">{{ user.name }}</h4>
+            <span class="candidate-email">{{ user.email }}</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- 2. Countdown Timer -->
+      <div class="timer-widget">
+        <div class="timer-label">
+          <i class="bi bi-stopwatch-fill text-primary me-1"></i> Remaining Time
+        </div>
+        <div id="timer-digits" class="timer-digits">--:--</div>
+        <div class="timer-note">Auto-submits when time expires</div>
+      </div>
+
+      <!-- 3. Webcam Preview -->
+      <div class="video-container">
+        <div class="video-header">
+          <span class="video-title"><i class="bi bi-camera-video-fill text-primary me-1"></i> Webcam Feed</span>
+          <span class="badge badge-secondary" style="font-size: 0.65rem;">OpenCV Haar</span>
+        </div>
+
+        <div class="video-wrapper">
+          <video id="webcam-video" autoplay playsinline muted></video>
+          <canvas id="webcam-canvas"></canvas>
+        </div>
+
+        <!-- 4. Monitoring Status Indicator -->
+        <div id="face-status-indicator" class="face-status-indicator detected">
+          <i class="bi bi-shield-check"></i> 🟢 Face Detected
+        </div>
+
+        <!-- Simulation fallback banner if live camera unavailable -->
+        <div id="sim-status-banner" class="simulation-mode-card" style="margin-top: 0.75rem; {% if session_obj.mode != 'simulated' %}display:none;{% endif %}">
+          <div class="sim-label"><i class="bi bi-cpu-fill"></i> Simulation Mode Active</div>
+          <p class="sim-text">Camera hardware not detected. Automated presence packets streaming.</p>
+          <button type="button" id="toggle-sim-face-btn" class="btn btn-secondary btn-sm w-100" onclick="window.examMonitorInstance && window.examMonitorInstance.toggleSimulatedFacePresence();">
+            <i class="bi bi-eye-slash me-1"></i> Simulate Looking Away
+          </button>
+        </div>
+      </div>
+
+      <!-- Monitoring Status Checks -->
+      <div class="card active-monitors-card">
+        <div class="monitors-title"><i class="bi bi-shield-lock-fill text-success me-1"></i> Active Checks</div>
+        <ul class="monitors-list">
+          <li><i class="bi bi-check-circle-fill text-success me-1"></i> Continuous Face Presence</li>
+          <li><i class="bi bi-check-circle-fill text-success me-1"></i> Tab & Window Blur Tracking</li>
+          <li><i class="bi bi-check-circle-fill text-success me-1"></i> Fullscreen Exit Detection</li>
+        </ul>
+      </div>
+
+    </aside>
+
+  </div>
+
+  <!-- ================= BOTTOM: Submit Exam Button ================= -->
+  <footer class="exam-bottom-bar">
+    <div class="bottom-progress-info">
+      <i class="bi bi-clipboard-check text-primary me-2"></i>
+      <span>Answer all questions carefully before submitting.</span>
+    </div>
+    <div class="bottom-actions">
+      <button type="button" class="btn btn-danger btn-submit-exam" onclick="if(confirm('Are you sure you want to submit your examination? Your answers will be finalized and evaluated.')) document.getElementById('exam-submission-form').submit();">
+        <i class="bi bi-send-check-fill me-2"></i> Submit Exam
+      </button>
+    </div>
+  </footer>
+
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{{ url_for('static', filename='js/exam_monitor.js') }}"></script>
+<script>
+  document.addEventListener("DOMContentLoaded", () => {
+    window.examMonitorInstance = new ExamMonitor({
+      sessionId: {{ session_obj.id }},
+      durationMinutes: {{ exam.duration_minutes }},
+      monitoringInterval: 1500,
+      mode: "{{ session_obj.mode }}"
+    });
+  });
+</script>
+{% endblock %}

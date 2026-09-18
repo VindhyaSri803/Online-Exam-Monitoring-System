@@ -1,0 +1,135 @@
+{% extends "base.html" %}
+
+{% block title %}Examination Sessions — ExamGuard{% endblock %}
+{% block page_title %}Session Audit Registry{% endblock %}
+
+{% block content %}
+<!-- Search & Filter Controls -->
+<div class="card" style="padding: 1.25rem; margin-bottom: 1.5rem;">
+  <form method="GET" action="{{ url_for('admin.sessions') }}" style="display: flex; flex-wrap: wrap; gap: 1rem; align-items: flex-end;">
+    <div style="flex: 1; min-width: 220px;">
+      <label class="form-label" for="search">Candidate Search</label>
+      <input type="text" id="search" name="search" class="form-control" placeholder="Search by name or email..." value="{{ search }}">
+    </div>
+
+    <div style="min-width: 180px;">
+      <label class="form-label" for="exam_id">Examination</label>
+      <select id="exam_id" name="exam_id" class="form-control">
+        <option value="">All Exams</option>
+        {% for e in exams %}
+        <option value="{{ e.id }}" {% if selected_exam_id == e.id %}selected{% endif %}>{{ e.title[:30] }}...</option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <div style="min-width: 140px;">
+      <label class="form-label" for="risk_level">Risk Level</label>
+      <select id="risk_level" name="risk_level" class="form-control">
+        <option value="">All Risks</option>
+        <option value="LOW" {% if selected_risk == 'LOW' %}selected{% endif %}>Low Risk</option>
+        <option value="MEDIUM" {% if selected_risk == 'MEDIUM' %}selected{% endif %}>Medium Risk</option>
+        <option value="HIGH" {% if selected_risk == 'HIGH' %}selected{% endif %}>High Risk</option>
+      </select>
+    </div>
+
+    <div style="min-width: 140px;">
+      <label class="form-label" for="status">Status</label>
+      <select id="status" name="status" class="form-control">
+        <option value="">All Statuses</option>
+        <option value="in_progress" {% if selected_status == 'in_progress' %}selected{% endif %}>In Progress</option>
+        <option value="completed" {% if selected_status == 'completed' %}selected{% endif %}>Completed</option>
+      </select>
+    </div>
+
+    <div>
+      <button type="submit" class="btn btn-primary" style="height: 42px;">
+        <i class="bi bi-filter"></i> Apply Filters
+      </button>
+      <a href="{{ url_for('admin.sessions') }}" class="btn btn-secondary" style="height: 42px;">
+        Reset
+      </a>
+    </div>
+  </form>
+</div>
+
+<!-- Sessions Table Card -->
+<div class="card">
+  <div class="card-header-flex">
+    <h3 class="card-title">
+      <i class="bi bi-person-video3 text-primary"></i> Recorded Examination Sessions ({{ sessions|length }})
+    </h3>
+  </div>
+
+  <div class="table-responsive">
+    <table class="custom-table">
+      <thead>
+        <tr>
+          <th>Session ID</th>
+          <th>Candidate</th>
+          <th>Examination</th>
+          <th>Start Time</th>
+          <th>Face Presence</th>
+          <th>Score</th>
+          <th>Risk Level</th>
+          <th>Behavior Cluster</th>
+          <th>Incident Status</th>
+          <th>Action</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for s in sessions %}
+        <tr>
+          <td><code>#{{ s.id }}</code></td>
+          <td>
+            <div style="font-weight: 600;">{{ s.candidate.name if s.candidate else 'Unknown' }}</div>
+            <div style="font-size: 0.75rem; color: var(--text-muted);">{{ s.candidate.email if s.candidate else 'N/A' }}</div>
+          </td>
+          <td>
+            <span style="font-size: 0.85rem;">{{ s.exam.title if s.exam else 'N/A' }}</span>
+          </td>
+          <td>
+            <span style="font-size: 0.8rem; color: var(--text-secondary);">
+              {{ s.start_time.strftime('%b %d, %Y %H:%M') if s.start_time else 'N/A' }}
+            </span>
+          </td>
+          <td>
+            <strong style="color: {% if (s.face_presence_ratio or 1.0) >= 0.85 %}#34d399{% elif (s.face_presence_ratio or 1.0) >= 0.7 %}#fbbf24{% else %}#f87171{% endif %};">
+              {{ ((s.face_presence_ratio or 1.0) * 100)|round(1) }}%
+            </strong>
+          </td>
+          <td>
+            <strong style="color: {% if (s.integrity_score or 100) >= 80 %}#34d399{% elif (s.integrity_score or 100) >= 50 %}#fbbf24{% else %}#f87171{% endif %};">
+              {{ s.integrity_score }}
+            </strong>
+          </td>
+          <td>
+            <span class="badge badge-{{ s.risk_level|lower }}">{{ s.risk_level }}</span>
+          </td>
+          <td>
+            <span style="font-size: 0.78rem; color: var(--text-secondary);">
+              {{ s.cluster_label or 'Unclassified' }}
+            </span>
+          </td>
+          <td>
+            <span class="badge badge-secondary" style="font-size: 0.7rem;">
+              {{ s.incident_status or 'New' }}
+            </span>
+          </td>
+          <td>
+            <a href="{{ url_for('admin.session_detail', session_id=s.id) }}" class="btn btn-primary btn-sm">
+              <i class="bi bi-search"></i> Inspect
+            </a>
+          </td>
+        </tr>
+        {% else %}
+        <tr>
+          <td colspan="10" style="text-align: center; color: var(--text-muted); padding: 2rem;">
+            No sessions match the selected query.
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,191 @@
+{% extends "base.html" %}
+
+{% block title %}Candidate Profile: {{ candidate.name }} — ExamGuard{% endblock %}
+{% block page_title %}Candidate 360° Profile & Audit History{% endblock %}
+
+{% block content %}
+<!-- Candidate Profile Header -->
+<div class="card" style="margin-bottom: 1.5rem;">
+  <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 1.5rem;">
+    <div style="display: flex; align-items: center; gap: 1.5rem;">
+      {% if candidate.registration_photo %}
+        <img src="{{ url_for('uploaded_photo', filename=candidate.registration_photo) }}" alt="{{ candidate.name }}" style="width: 84px; height: 84px; border-radius: 16px; object-fit: cover; border: 3px solid var(--border-color);">
+      {% else %}
+        <div style="width: 84px; height: 84px; border-radius: 16px; background-color: var(--primary-light); color: var(--primary); display: flex; align-items: center; justify-content: center; font-size: 2.25rem; font-weight: 700; border: 3px solid var(--border-color);">
+          {{ candidate.name[0] }}
+        </div>
+      {% endif %}
+      <div>
+        <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 0.25rem;">
+          <h2 style="font-size: 1.4rem; font-weight: 700;">{{ candidate.name }}</h2>
+          <span class="badge badge-info">Candidate ID #{{ candidate.id }}</span>
+        </div>
+        <p style="color: var(--text-secondary); font-size: 0.88rem;">
+          <i class="bi bi-envelope-fill text-muted me-1"></i> {{ candidate.email }}
+          <span style="margin: 0 0.5rem;">•</span>
+          Registered: {{ candidate.created_at.strftime('%b %d, %Y') if candidate.created_at else 'N/A' }}
+        </p>
+      </div>
+    </div>
+    <div>
+      <a href="{{ url_for('admin.candidates') }}" class="btn btn-secondary btn-sm">
+        <i class="bi bi-arrow-left"></i> Back to Candidate Directory
+      </a>
+    </div>
+  </div>
+</div>
+
+<!-- Candidate KPI Cards Grid -->
+<div class="kpi-grid" style="margin-bottom: 1.5rem;">
+  <div class="kpi-card">
+    <div class="kpi-data">
+      <h3>Lifetime Avg Score</h3>
+      <div class="kpi-value" style="color: {% if avg_score >= 80 %}#34d399{% elif avg_score >= 50 %}#fbbf24{% else %}#f87171{% endif %};">
+        {{ avg_score }}<span style="font-size: 1rem; color: var(--text-muted);">/100</span>
+      </div>
+      <div class="kpi-subtext">Across all exams</div>
+    </div>
+    <div class="kpi-icon green"><i class="bi bi-shield-check"></i></div>
+  </div>
+
+  <div class="kpi-card">
+    <div class="kpi-data">
+      <h3>Avg Face Presence</h3>
+      <div class="kpi-value" style="color: #38bdf8;">{{ avg_presence }}%</div>
+      <div class="kpi-subtext">Camera tracking verification</div>
+    </div>
+    <div class="kpi-icon blue"><i class="bi bi-person-bounding-box"></i></div>
+  </div>
+
+  <div class="kpi-card">
+    <div class="kpi-data">
+      <h3>Total Assessments</h3>
+      <div class="kpi-value">{{ sessions|length }}</div>
+      <div class="kpi-subtext">Sessions taken</div>
+    </div>
+    <div class="kpi-icon cyan"><i class="bi bi-journal-check"></i></div>
+  </div>
+
+  <div class="kpi-card">
+    <div class="kpi-data">
+      <h3>Total Flagged Violations</h3>
+      <div class="kpi-value" style="color: {% if suspicious_events|length > 0 %}#f87171{% else %}#34d399{% endif %};">
+        {{ suspicious_events|length }}
+      </div>
+      <div class="kpi-subtext">{{ evidence_items|length }} visual snapshots</div>
+    </div>
+    <div class="kpi-icon amber"><i class="bi bi-exclamation-triangle-fill"></i></div>
+  </div>
+</div>
+
+<!-- Candidate Exam Sessions History Table -->
+<div class="card" style="margin-bottom: 1.5rem;">
+  <div class="card-header-flex">
+    <h3 class="card-title">
+      <i class="bi bi-person-video3 text-primary"></i> Examination Sessions History
+    </h3>
+  </div>
+
+  <div class="table-responsive">
+    <table class="custom-table">
+      <thead>
+        <tr>
+          <th>Session ID</th>
+          <th>Exam Title</th>
+          <th>Start Time</th>
+          <th>Face Presence</th>
+          <th>Integrity Score</th>
+          <th>Risk Level</th>
+          <th>Review Status</th>
+          <th>Action</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for s in sessions %}
+        <tr>
+          <td><code>#{{ s.id }}</code></td>
+          <td><strong>{{ s.exam.title if s.exam else 'N/A' }}</strong></td>
+          <td>{{ s.start_time.strftime('%b %d, %Y %H:%M') if s.start_time else 'N/A' }}</td>
+          <td>{{ ((s.face_presence_ratio or 1.0)*100)|round(1) }}%</td>
+          <td>
+            <strong style="color: {% if (s.integrity_score or 100) >= 80 %}#34d399{% elif (s.integrity_score or 100) >= 50 %}#fbbf24{% else %}#f87171{% endif %};">
+              {{ s.integrity_score }}
+            </strong>
+          </td>
+          <td><span class="badge badge-{{ s.risk_level|lower }}">{{ s.risk_level }}</span></td>
+          <td><span class="badge badge-secondary">{{ s.incident_status or 'New' }}</span></td>
+          <td>
+            <a href="{{ url_for('admin.session_detail', session_id=s.id) }}" class="btn btn-primary btn-sm">
+              <i class="bi bi-search"></i> Audit Session
+            </a>
+          </td>
+        </tr>
+        {% else %}
+        <tr>
+          <td colspan="8" style="text-align: center; color: var(--text-muted); padding: 1.5rem;">
+            No assessment sessions recorded for this candidate.
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- Evidence & Suspicious Events Grid -->
+<div class="grid-2">
+  <!-- Suspicious Events Log -->
+  <div class="card">
+    <div class="card-header-flex">
+      <h3 class="card-title"><i class="bi bi-exclamation-octagon-fill text-danger"></i> Lifetime Flagged Rules</h3>
+    </div>
+    <div class="table-responsive">
+      <table class="custom-table">
+        <thead>
+          <tr>
+            <th>Rule</th>
+            <th>Severity</th>
+            <th>Description</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for se in suspicious_events %}
+          <tr>
+            <td><strong>{{ se.rule_name }}</strong></td>
+            <td><span class="badge badge-{{ se.severity|lower }}">{{ se.severity }}</span></td>
+            <td><span style="font-size: 0.78rem; color: var(--text-secondary);">{{ se.description }}</span></td>
+          </tr>
+          {% else %}
+          <tr>
+            <td colspan="3" style="text-align: center; color: var(--text-muted); padding: 1.5rem;">
+              No suspicious rules triggered across all sessions.
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Evidence Artifacts Gallery -->
+  <div class="card">
+    <div class="card-header-flex">
+      <h3 class="card-title"><i class="bi bi-camera-reels-fill text-warning"></i> Captured Visual Evidence</h3>
+    </div>
+    <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); gap: 0.75rem; max-height: 240px; overflow-y: auto;">
+      {% for ev in evidence_items %}
+      <div style="background-color: var(--bg-card); border: 1px solid var(--border-color); border-radius: 8px; overflow: hidden; text-align: center;">
+        <img src="{{ url_for('uploaded_evidence', filename=ev.file_path) }}" alt="{{ ev.description }}" style="width: 100%; aspect-ratio: 4/3; object-fit: cover;">
+        <div style="padding: 0.25rem; font-size: 0.65rem; color: var(--text-muted);">
+          {{ ev.timestamp.strftime('%H:%M:%S') if ev.timestamp else '' }}
+        </div>
+      </div>
+      {% else %}
+      <div style="grid-column: 1/-1; text-align: center; color: var(--text-muted); padding: 1.5rem;">
+        No visual evidence snapshots on file.
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+{% endblock %}

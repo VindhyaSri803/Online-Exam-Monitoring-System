@@ -1,0 +1,87 @@
+{% extends "base.html" %}
+
+{% block title %}Data Science Visualizations — ExamGuard{% endblock %}
+{% block page_title %}Data Science Analytics & Statistical Visualizations (Matplotlib & Seaborn){% endblock %}
+
+{% block content %}
+<!-- Exam Filter Bar -->
+<div class="card" style="padding: 1rem 1.5rem; margin-bottom: 1.5rem;">
+  <form method="GET" action="{{ url_for('admin.visualizations') }}" style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 1rem;">
+    <div style="display: flex; align-items: center; gap: 1rem;">
+      <label for="exam_id" style="font-size: 0.85rem; font-weight: 600; color: var(--text-secondary);">
+        <i class="bi bi-funnel-fill text-primary"></i> Filter Statistical Visualizations:
+      </label>
+      <select name="exam_id" id="exam_id" class="form-control" style="width: auto; min-width: 280px;" onchange="this.form.submit()">
+        <option value="">All Examinations (Full Institutional Cohort)</option>
+        {% for exam in exams %}
+        <option value="{{ exam.id }}" {% if selected_exam_id == exam.id %}selected{% endif %}>{{ exam.title }}</option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <div style="display: flex; gap: 0.75rem;">
+      <a href="{{ url_for('admin.analytics') }}" class="btn btn-secondary btn-sm">
+        <i class="bi bi-bar-chart-line-fill text-info"></i> Interactive Charts Hub
+      </a>
+      <a href="{{ url_for('admin.export_hub') }}" class="btn btn-secondary btn-sm">
+        <i class="bi bi-download text-success"></i> Export Data
+      </a>
+    </div>
+  </form>
+</div>
+
+<!-- Visualizations Grid -->
+<div class="grid-2" style="margin-bottom: 1.5rem;">
+  <!-- Plot 1: Score Distribution -->
+  <div class="card" style="margin-bottom: 0;">
+    <div class="card-header-flex">
+      <h3 class="card-title"><i class="bi bi-bar-chart-steps text-primary"></i> 1. Integrity Score Distribution (Seaborn + KDE)</h3>
+    </div>
+    <div style="text-align: center; overflow: hidden; border-radius: 8px;">
+      <img src="{{ plots.score_distribution }}" alt="Integrity Score Distribution" style="width: 100%; height: auto; display: block; border-radius: 6px;">
+    </div>
+  </div>
+
+  <!-- Plot 2: Telemetry Event Frequency -->
+  <div class="card" style="margin-bottom: 0;">
+    <div class="card-header-flex">
+      <h3 class="card-title"><i class="bi bi-activity text-warning"></i> 2. Monitoring Telemetry Frequency (Seaborn Barplot)</h3>
+    </div>
+    <div style="text-align: center; overflow: hidden; border-radius: 8px;">
+      <img src="{{ plots.event_frequency }}" alt="Monitoring Event Frequency" style="width: 100%; height: auto; display: block; border-radius: 6px;">
+    </div>
+  </div>
+</div>
+
+<div class="grid-2" style="margin-bottom: 1.5rem;">
+  <!-- Plot 3: Correlation Heatmap -->
+  <div class="card" style="margin-bottom: 0;">
+    <div class="card-header-flex">
+      <h3 class="card-title"><i class="bi bi-grid-3x3-gap-fill text-info"></i> 3. Telemetry Anomaly Correlation Heatmap (Seaborn Heatmap)</h3>
+    </div>
+    <div style="text-align: center; overflow: hidden; border-radius: 8px;">
+      <img src="{{ plots.correlation_heatmap }}" alt="Correlation Heatmap" style="width: 100%; height: auto; display: block; border-radius: 6px;">
+    </div>
+  </div>
+
+  <!-- Plot 4: K-Means Clustering -->
+  <div class="card" style="margin-bottom: 0;">
+    <div class="card-header-flex">
+      <h3 class="card-title"><i class="bi bi-diagram-3-fill text-success"></i> 4. K-Means Behavioral Clustering (Scikit-Learn PCA 2D)</h3>
+    </div>
+    <div style="text-align: center; overflow: hidden; border-radius: 8px;">
+      <img src="{{ plots.kmeans_clusters }}" alt="K-Means Clusters" style="width: 100%; height: auto; display: block; border-radius: 6px;">
+    </div>
+  </div>
+</div>
+
+<!-- Plot 5: Cohort Risk Profiling -->
+<div class="card" style="max-width: 650px; margin: 0 auto 2rem auto;">
+  <div class="card-header-flex">
+    <h3 class="card-title"><i class="bi bi-pie-chart-fill text-danger"></i> 5. Cohort Risk Profiling (Matplotlib / Seaborn)</h3>
+  </div>
+  <div style="text-align: center; overflow: hidden; border-radius: 8px;">
+    <img src="{{ plots.cohort_risk_profiling }}" alt="Cohort Risk Profile" style="width: 100%; height: auto; display: block; border-radius: 6px;">
+  </div>
+</div>
+{% endblock %}
